@@ -1,0 +1,153 @@
+version = 1
+revision = 3
+requires-python = ">=3.10"
+
+[[package]]
+name = "dbus-next"
+version = "0.2.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ce/45/6a40fbe886d60a8c26f480e7d12535502b5ba123814b3b9a0b002ebca198/dbus_next-0.2.3.tar.gz", hash = "sha256:f4eae26909332ada528c0a3549dda8d4f088f9b365153952a408e28023a626a5", size = 71112, upload-time = "2021-07-25T22:11:28.398Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d2/fc/c0a3f4c4eaa5a22fbef91713474666e13d0ea2a69c84532579490a9f2cc8/dbus_next-0.2.3-py3-none-any.whl", hash = "sha256:58948f9aff9db08316734c0be2a120f6dc502124d9642f55e90ac82ffb16a18b", size = 57885, upload-time = "2021-07-25T22:11:25.466Z" },
+]
+
+[[package]]
+name = "nvidia-ml-py"
+version = "13.590.44"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1b/23/3871537f204aee823c574ba25cbeb08cae779979d4d43c01adddda00bab9/nvidia_ml_py-13.590.44.tar.gz", hash = "sha256:b358c7614b0fdeea4b95f046f1c90123bfe25d148ab93bb1c00248b834703373", size = 49737, upload-time = "2025-12-08T14:41:10.872Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e4/47/4c822bd37a008e72fd5a0eae33524ae3ac97b13f7030f63bae1728b8957e/nvidia_ml_py-13.590.44-py3-none-any.whl", hash = "sha256:18feb54eca7d0e3cdc8d1a040a771eda72d9ec3148e5443087970dbfd7377ecc", size = 50683, upload-time = "2025-12-08T14:41:09.597Z" },
+]
+
+[[package]]
+name = "psutil"
+version = "7.1.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e1/88/bdd0a41e5857d5d703287598cbf08dad90aed56774ea52ae071bae9071b6/psutil-7.1.3.tar.gz", hash = "sha256:6c86281738d77335af7aec228328e944b30930899ea760ecf33a4dba66be5e74", size = 489059, upload-time = "2025-11-02T12:25:54.619Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bd/93/0c49e776b8734fef56ec9c5c57f923922f2cf0497d62e0f419465f28f3d0/psutil-7.1.3-cp313-cp313t-macosx_10_13_x86_64.whl", hash = "sha256:0005da714eee687b4b8decd3d6cc7c6db36215c9e74e5ad2264b90c3df7d92dc", size = 239751, upload-time = "2025-11-02T12:25:58.161Z" },
+    { url = "https://files.pythonhosted.org/packages/6f/8d/b31e39c769e70780f007969815195a55c81a63efebdd4dbe9e7a113adb2f/psutil-7.1.3-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:19644c85dcb987e35eeeaefdc3915d059dac7bd1167cdcdbf27e0ce2df0c08c0", size = 240368, upload-time = "2025-11-02T12:26:00.491Z" },
+    { url = "https://files.pythonhosted.org/packages/62/61/23fd4acc3c9eebbf6b6c78bcd89e5d020cfde4acf0a9233e9d4e3fa698b4/psutil-7.1.3-cp313-cp313t-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:95ef04cf2e5ba0ab9eaafc4a11eaae91b44f4ef5541acd2ee91d9108d00d59a7", size = 287134, upload-time = "2025-11-02T12:26:02.613Z" },
+    { url = "https://files.pythonhosted.org/packages/30/1c/f921a009ea9ceb51aa355cb0cc118f68d354db36eae18174bab63affb3e6/psutil-7.1.3-cp313-cp313t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:1068c303be3a72f8e18e412c5b2a8f6d31750fb152f9cb106b54090296c9d251", size = 289904, upload-time = "2025-11-02T12:26:05.207Z" },
+    { url = "https://files.pythonhosted.org/packages/a6/82/62d68066e13e46a5116df187d319d1724b3f437ddd0f958756fc052677f4/psutil-7.1.3-cp313-cp313t-win_amd64.whl", hash = "sha256:18349c5c24b06ac5612c0428ec2a0331c26443d259e2a0144a9b24b4395b58fa", size = 249642, upload-time = "2025-11-02T12:26:07.447Z" },
+    { url = "https://files.pythonhosted.org/packages/df/ad/c1cd5fe965c14a0392112f68362cfceb5230819dbb5b1888950d18a11d9f/psutil-7.1.3-cp313-cp313t-win_arm64.whl", hash = "sha256:c525ffa774fe4496282fb0b1187725793de3e7c6b29e41562733cae9ada151ee", size = 245518, upload-time = "2025-11-02T12:26:09.719Z" },
+    { url = "https://files.pythonhosted.org/packages/2e/bb/6670bded3e3236eb4287c7bcdc167e9fae6e1e9286e437f7111caed2f909/psutil-7.1.3-cp314-cp314t-macosx_10_15_x86_64.whl", hash = "sha256:b403da1df4d6d43973dc004d19cee3b848e998ae3154cc8097d139b77156c353", size = 239843, upload-time = "2025-11-02T12:26:11.968Z" },
+    { url = "https://files.pythonhosted.org/packages/b8/66/853d50e75a38c9a7370ddbeefabdd3d3116b9c31ef94dc92c6729bc36bec/psutil-7.1.3-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:ad81425efc5e75da3f39b3e636293360ad8d0b49bed7df824c79764fb4ba9b8b", size = 240369, upload-time = "2025-11-02T12:26:14.358Z" },
+    { url = "https://files.pythonhosted.org/packages/41/bd/313aba97cb5bfb26916dc29cf0646cbe4dd6a89ca69e8c6edce654876d39/psutil-7.1.3-cp314-cp314t-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8f33a3702e167783a9213db10ad29650ebf383946e91bc77f28a5eb083496bc9", size = 288210, upload-time = "2025-11-02T12:26:16.699Z" },
+    { url = "https://files.pythonhosted.org/packages/c2/fa/76e3c06e760927a0cfb5705eb38164254de34e9bd86db656d4dbaa228b04/psutil-7.1.3-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:fac9cd332c67f4422504297889da5ab7e05fd11e3c4392140f7370f4208ded1f", size = 291182, upload-time = "2025-11-02T12:26:18.848Z" },
+    { url = "https://files.pythonhosted.org/packages/0f/1d/5774a91607035ee5078b8fd747686ebec28a962f178712de100d00b78a32/psutil-7.1.3-cp314-cp314t-win_amd64.whl", hash = "sha256:3792983e23b69843aea49c8f5b8f115572c5ab64c153bada5270086a2123c7e7", size = 250466, upload-time = "2025-11-02T12:26:21.183Z" },
+    { url = "https://files.pythonhosted.org/packages/00/ca/e426584bacb43a5cb1ac91fae1937f478cd8fbe5e4ff96574e698a2c77cd/psutil-7.1.3-cp314-cp314t-win_arm64.whl", hash = "sha256:31d77fcedb7529f27bb3a0472bea9334349f9a04160e8e6e5020f22c59893264", size = 245756, upload-time = "2025-11-02T12:26:23.148Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/94/46b9154a800253e7ecff5aaacdf8ebf43db99de4a2dfa18575b02548654e/psutil-7.1.3-cp36-abi3-macosx_10_9_x86_64.whl", hash = "sha256:2bdbcd0e58ca14996a42adf3621a6244f1bb2e2e528886959c72cf1e326677ab", size = 238359, upload-time = "2025-11-02T12:26:25.284Z" },
+    { url = "https://files.pythonhosted.org/packages/68/3a/9f93cff5c025029a36d9a92fef47220ab4692ee7f2be0fba9f92813d0cb8/psutil-7.1.3-cp36-abi3-macosx_11_0_arm64.whl", hash = "sha256:bc31fa00f1fbc3c3802141eede66f3a2d51d89716a194bf2cd6fc68310a19880", size = 239171, upload-time = "2025-11-02T12:26:27.23Z" },
+    { url = "https://files.pythonhosted.org/packages/ce/b1/5f49af514f76431ba4eea935b8ad3725cdeb397e9245ab919dbc1d1dc20f/psutil-7.1.3-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:3bb428f9f05c1225a558f53e30ccbad9930b11c3fc206836242de1091d3e7dd3", size = 263261, upload-time = "2025-11-02T12:26:29.48Z" },
+    { url = "https://files.pythonhosted.org/packages/e0/95/992c8816a74016eb095e73585d747e0a8ea21a061ed3689474fabb29a395/psutil-7.1.3-cp36-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:56d974e02ca2c8eb4812c3f76c30e28836fffc311d55d979f1465c1feeb2b68b", size = 264635, upload-time = "2025-11-02T12:26:31.74Z" },
+    { url = "https://files.pythonhosted.org/packages/55/4c/c3ed1a622b6ae2fd3c945a366e64eb35247a31e4db16cf5095e269e8eb3c/psutil-7.1.3-cp37-abi3-win_amd64.whl", hash = "sha256:f39c2c19fe824b47484b96f9692932248a54c43799a84282cfe58d05a6449efd", size = 247633, upload-time = "2025-11-02T12:26:33.887Z" },
+    { url = "https://files.pythonhosted.org/packages/c9/ad/33b2ccec09bf96c2b2ef3f9a6f66baac8253d7565d8839e024a6b905d45d/psutil-7.1.3-cp37-abi3-win_arm64.whl", hash = "sha256:bd0d69cee829226a761e92f28140bec9a5ee9d5b4fb4b0cc589068dbfff559b1", size = 244608, upload-time = "2025-11-02T12:26:36.136Z" },
+]
+
+[[package]]
+name = "pyside6"
+version = "6.10.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyside6-addons" },
+    { name = "pyside6-essentials" },
+    { name = "shiboken6" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/56/22/f82cfcd1158be502c5741fe67c3fa853f3c1edbd3ac2c2250769dd9722d1/pyside6-6.10.1-cp39-abi3-macosx_13_0_universal2.whl", hash = "sha256:d0e70dd0e126d01986f357c2a555722f9462cf8a942bf2ce180baf69f468e516", size = 558169, upload-time = "2025-11-20T10:09:08.79Z" },
+    { url = "https://files.pythonhosted.org/packages/66/eb/54afe242a25d1c33b04ecd8321a549d9efb7b89eef7690eed92e98ba1dc9/pyside6-6.10.1-cp39-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:4053bf51ba2c2cb20e1005edd469997976a02cec009f7c46356a0b65c137f1fa", size = 557818, upload-time = "2025-11-20T10:09:10.132Z" },
+    { url = "https://files.pythonhosted.org/packages/4d/af/5706b1b33587dc2f3dfa3a5000424befba35e4f2d5889284eebbde37138b/pyside6-6.10.1-cp39-abi3-manylinux_2_39_aarch64.whl", hash = "sha256:7d3ca20a40139ca5324a7864f1d91cdf2ff237e11bd16354a42670f2a4eeb13c", size = 558358, upload-time = "2025-11-20T10:09:11.288Z" },
+    { url = "https://files.pythonhosted.org/packages/26/41/3f48d724ecc8e42cea8a8442aa9b5a86d394b85093275990038fd1020039/pyside6-6.10.1-cp39-abi3-win_amd64.whl", hash = "sha256:9f89ff994f774420eaa38cec6422fddd5356611d8481774820befd6f3bb84c9e", size = 564424, upload-time = "2025-11-20T10:09:12.677Z" },
+    { url = "https://files.pythonhosted.org/packages/af/30/395411473b433875a82f6b5fdd0cb28f19a0e345bcaac9fbc039400d7072/pyside6-6.10.1-cp39-abi3-win_arm64.whl", hash = "sha256:9c5c1d94387d1a32a6fae25348097918ef413b87dfa3767c46f737c6d48ae437", size = 548866, upload-time = "2025-11-20T10:09:14.174Z" },
+]
+
+[[package]]
+name = "pyside6-addons"
+version = "6.10.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyside6-essentials" },
+    { name = "shiboken6" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2d/f9/b72a2578d7dbef7741bb90b5756b4ef9c99a5b40148ea53ce7f048573fe9/pyside6_addons-6.10.1-cp39-abi3-macosx_13_0_universal2.whl", hash = "sha256:4d2b82bbf9b861134845803837011e5f9ac7d33661b216805273cf0c6d0f8e82", size = 322639446, upload-time = "2025-11-20T09:54:50.75Z" },
+    { url = "https://files.pythonhosted.org/packages/94/3b/3ed951c570a15570706a89d39bfd4eaaffdf16d5c2dca17e82fc3ec8aaa6/pyside6_addons-6.10.1-cp39-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:330c229b58d30083a7b99ed22e118eb4f4126408429816a4044ccd0438ae81b4", size = 170678293, upload-time = "2025-11-20T09:56:40.991Z" },
+    { url = "https://files.pythonhosted.org/packages/22/77/4c780b204d0bf3323a75c184e349d063e208db44c993f1214aa4745d6f47/pyside6_addons-6.10.1-cp39-abi3-manylinux_2_39_aarch64.whl", hash = "sha256:56864b5fecd6924187a2d0f7e98d968ed72b6cc267caa5b294cd7e88fff4e54c", size = 166365011, upload-time = "2025-11-20T09:57:20.261Z" },
+    { url = "https://files.pythonhosted.org/packages/04/14/58239776499e6b279fa6ca2e0d47209531454b99f6bd2ad7c96f11109416/pyside6_addons-6.10.1-cp39-abi3-win_amd64.whl", hash = "sha256:b6e249d15407dd33d6a2ffabd9dc6d7a8ab8c95d05f16a71dad4d07781c76341", size = 164864664, upload-time = "2025-11-20T09:57:54.815Z" },
+    { url = "https://files.pythonhosted.org/packages/e2/cd/1b74108671ba4b1ebb2661330665c4898b089e9c87f7ba69fe2438f3d1b6/pyside6_addons-6.10.1-cp39-abi3-win_arm64.whl", hash = "sha256:0de303c0447326cdc6c8be5ab066ef581e2d0baf22560c9362d41b8304fdf2db", size = 34191225, upload-time = "2025-11-20T09:58:04.184Z" },
+]
+
+[[package]]
+name = "pyside6-essentials"
+version = "6.10.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "shiboken6" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/04/b0/c43209fecef79912e9b1c70a1b5172b1edf76caebcc885c58c60a09613b0/pyside6_essentials-6.10.1-cp39-abi3-macosx_13_0_universal2.whl", hash = "sha256:cd224aff3bb26ff1fca32c050e1c4d0bd9f951a96219d40d5f3d0128485b0bbe", size = 105461499, upload-time = "2025-11-20T09:59:23.733Z" },
+    { url = "https://files.pythonhosted.org/packages/5f/8e/b69ba7fa0c701f3f4136b50460441697ec49ee6ea35c229eb2a5ee4b5952/pyside6_essentials-6.10.1-cp39-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:e9ccbfb58c03911a0bce1f2198605b02d4b5ca6276bfc0cbcf7c6f6393ffb856", size = 76764617, upload-time = "2025-11-20T09:59:38.831Z" },
+    { url = "https://files.pythonhosted.org/packages/bd/83/569d27f4b6c6b9377150fe1a3745d64d02614021bea233636bc936a23423/pyside6_essentials-6.10.1-cp39-abi3-manylinux_2_39_aarch64.whl", hash = "sha256:ec8617c9b143b0c19ba1cc5a7e98c538e4143795480cb152aee47802c18dc5d2", size = 75850373, upload-time = "2025-11-20T09:59:56.082Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/64/a8df6333de8ccbf3a320e1346ca30d0f314840aff5e3db9b4b66bf38e26c/pyside6_essentials-6.10.1-cp39-abi3-win_amd64.whl", hash = "sha256:9555a48e8f0acf63fc6a23c250808db841b28a66ed6ad89ee0e4df7628752674", size = 74491180, upload-time = "2025-11-20T10:00:11.215Z" },
+    { url = "https://files.pythonhosted.org/packages/67/da/65cc6c6a870d4ea908c59b2f0f9e2cf3bfc6c0710ebf278ed72f69865e4e/pyside6_essentials-6.10.1-cp39-abi3-win_arm64.whl", hash = "sha256:4d1d248644f1778f8ddae5da714ca0f5a150a5e6f602af2765a7d21b876da05c", size = 55190458, upload-time = "2025-11-20T10:00:26.226Z" },
+]
+
+[[package]]
+name = "qasync"
+version = "0.28.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ec/b2/5be08597dbbf331edb69478eae2f8dd511834cebf56a183b442e7437f8e0/qasync-0.28.0.tar.gz", hash = "sha256:6f7f1f18971f59cb259b107218269ba56e3ad475ec456e54714b426a6e30b71d", size = 14010, upload-time = "2025-08-28T01:31:36.785Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e5/84/0ce4cd946f6e958428c87d5accac35df70f81607e45ba4919947d0762d63/qasync-0.28.0-py3-none-any.whl", hash = "sha256:21faba8d047c717008378f5ac29ea58c32a8128528629e4afd57c59b768dba0f", size = 16188, upload-time = "2025-08-28T01:31:35.591Z" },
+]
+
+[[package]]
+name = "shiboken6"
+version = "6.10.1"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6f/8b/e5db743d505ceea3efc4cd9634a3bee22a3e2bf6e07cefd28c9b9edabcc6/shiboken6-6.10.1-cp39-abi3-macosx_13_0_universal2.whl", hash = "sha256:9f2990f5b61b0b68ecadcd896ab4441f2cb097eef7797ecc40584107d9850d71", size = 478483, upload-time = "2025-11-20T10:08:52.411Z" },
+    { url = "https://files.pythonhosted.org/packages/56/ba/b50c1a44b3c4643f482afbf1a0ea58f393827307100389ce29404f9ad3b0/shiboken6-6.10.1-cp39-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:f4221a52dfb81f24a0d20cc4f8981cb6edd810d5a9fb28287ce10d342573a0e4", size = 271993, upload-time = "2025-11-20T10:08:54.093Z" },
+    { url = "https://files.pythonhosted.org/packages/16/b8/939c24ebd662b0aa5c945443d0973145b3fb7079f0196274ef7bb4b98f73/shiboken6-6.10.1-cp39-abi3-manylinux_2_39_aarch64.whl", hash = "sha256:c095b00f4d6bf578c0b2464bb4e264b351a99345374478570f69e2e679a2a1d0", size = 268691, upload-time = "2025-11-20T10:08:55.639Z" },
+    { url = "https://files.pythonhosted.org/packages/cf/a6/8c65ee0fa5e172ebcca03246b1bc3bd96cdaf1d60537316648536b7072a5/shiboken6-6.10.1-cp39-abi3-win_amd64.whl", hash = "sha256:c1601d3cda1fa32779b141663873741b54e797cb0328458d7466281f117b0a4e", size = 1234704, upload-time = "2025-11-20T10:08:57.417Z" },
+    { url = "https://files.pythonhosted.org/packages/7b/6a/c0fea2f2ac7d9d96618c98156500683a4d1f93fea0e8c5a2bc39913d7ef1/shiboken6-6.10.1-cp39-abi3-win_arm64.whl", hash = "sha256:5cf800917008587b551005a45add2d485cca66f5f7ecd5b320e9954e40448cc9", size = 1795567, upload-time = "2025-11-20T10:08:59.184Z" },
+]
+
+[[package]]
+name = "speedtest-cli"
+version = "2.1.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/85/d2/32c8a30768b788d319f94cde3a77e0ccc1812dca464ad8062d3c4d703e06/speedtest-cli-2.1.3.tar.gz", hash = "sha256:5e2773233cedb5fa3d8120eb7f97bcc4974b5221b254d33ff16e2f1d413d90f0", size = 24721, upload-time = "2021-04-08T13:51:33.627Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9f/39/65259b7054368b370d3183762484fa2c779ddc41633894d895f9d1720f45/speedtest_cli-2.1.3-py2.py3-none-any.whl", hash = "sha256:75ff32c91af9ac1ce2b905476d6e92bd9eb2c0783f9e7d1939d74605c7d0b9ea", size = 23973, upload-time = "2021-04-08T13:51:32.028Z" },
+]
+
+[[package]]
+name = "touchdeck"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "dbus-next" },
+    { name = "psutil" },
+    { name = "pyside6" },
+    { name = "qasync" },
+    { name = "speedtest-cli" },
+]
+
+[package.optional-dependencies]
+nvidia = [
+    { name = "nvidia-ml-py" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "dbus-next", specifier = ">=0.2.3" },
+    { name = "nvidia-ml-py", marker = "extra == 'nvidia'", specifier = ">=12.0.0" },
+    { name = "psutil", specifier = ">=5.9" },
+    { name = "pyside6", specifier = ">=6.5" },
+    { name = "qasync", specifier = ">=0.27" },
+    { name = "speedtest-cli", specifier = ">=2.1.3" },
+]
+provides-extras = ["nvidia"]
