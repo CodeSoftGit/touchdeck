@@ -143,7 +143,12 @@ class SwipeNavigator(QObject):
 
 
 class DeckWindow(QWidget):
-    def __init__(self, settings: Settings | None = None, logo_icon: QIcon | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings | None = None,
+        logo_icon: QIcon | None = None,
+        startup_logo_icon: QIcon | None = None,
+    ) -> None:
         super().__init__()
         self.setObjectName("DeckWindow")
         self.setWindowTitle("touchdeck")
@@ -217,7 +222,7 @@ class DeckWindow(QWidget):
         self.notification_stack.set_bounds(self.width(), self.height())
         self.notification_stack.raise_()
 
-        self.startup = StartupOverlay(logo_icon, parent=self, theme=self._theme)
+        self.startup = StartupOverlay(startup_logo_icon or logo_icon, parent=self, theme=self._theme)
         self.startup.set_bounds(self.width(), self.height())
         self.startup.raise_()
 

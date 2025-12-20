@@ -16,17 +16,21 @@ from touchdeck.ui.window import DeckWindow
 from touchdeck.ui.dialogs import DisplayChoiceDialog
 
 
-def _load_logo_icon() -> QIcon:
-    logo_path = Path(__file__).resolve().parent / "images" / "logo.svg"
-    return QIcon(str(logo_path))
+def _load_app_icon() -> QIcon:
+    return QIcon(str(Path(__file__).resolve().parent / "logo" / "square.svg"))
+
+
+def _load_full_logo_icon() -> QIcon:
+    return QIcon(str(Path(__file__).resolve().parent / "images" / "logo.svg"))
 
 
 def main() -> None:
     app = QApplication(sys.argv)
     app.setAttribute(Qt.AA_SynthesizeTouchForUnhandledMouseEvents, True)
-    logo_icon = _load_logo_icon()
-    if not logo_icon.isNull():
-        app.setWindowIcon(logo_icon)
+    app_icon = _load_app_icon()
+    full_logo_icon = _load_full_logo_icon()
+    if not app_icon.isNull():
+        app.setWindowIcon(app_icon)
 
     settings = load_settings()
     theme = get_theme(settings.theme)
@@ -43,9 +47,9 @@ def main() -> None:
             settings.display_selected = True
             save_settings(settings)
 
-    w = DeckWindow(settings=settings, logo_icon=logo_icon)
-    if not logo_icon.isNull():
-        w.setWindowIcon(logo_icon)
+    w = DeckWindow(settings=settings, logo_icon=app_icon, startup_logo_icon=full_logo_icon)
+    if not app_icon.isNull():
+        w.setWindowIcon(app_icon)
     if settings.demo_mode:
         w.show()
     else:
