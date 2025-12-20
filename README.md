@@ -6,6 +6,7 @@ A touchscreen “Stream Deck-like” UI for small displays:
 - **System Stats** page (CPU/RAM + optional NVIDIA GPU via NVML)
 - **Clock** page
 - **Swipe** left/right to switch pages
+- **Themes** for how *you* want your touchdeck to look
 - **And more!**
 
 > [!CAUTION]
@@ -13,6 +14,9 @@ A touchscreen “Stream Deck-like” UI for small displays:
 
 > [!IMPORTANT]
 > touchdeck is developed Linux-first, though may work on Windows. Support will not be provided for other platforms.
+
+<img width="794" height="507" alt="image" src="https://github.com/user-attachments/assets/e11b0a90-857f-47ad-b9c8-e6f25e89dd63" />
+
 
 ## Install
 ### using uv (Recommended)
