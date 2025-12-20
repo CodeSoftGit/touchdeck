@@ -43,3 +43,19 @@ def test_save_and_load_round_trip(tmp_path) -> None:
 
     loaded = settings.load_settings()
     assert loaded == original
+
+
+def test_load_settings_filters_quick_actions(tmp_path) -> None:
+    config_path = tmp_path / "settings.json"
+    settings._CONFIG_PATH = config_path
+    config_path.write_text(
+        json.dumps(
+            {
+                "quick_actions": ["play_pause", "unknown", "run_speedtest", "play_pause"],
+            }
+        )
+    )
+
+    loaded = settings.load_settings()
+
+    assert loaded.quick_actions == ["play_pause", "run_speedtest"]

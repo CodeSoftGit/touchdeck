@@ -1,20 +1,24 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+import sys
 from time import monotonic
 
-from PySide6.QtCore import Qt, QEvent, QTimer, QObject, QPointF, Slot
+from PySide6.QtCore import Qt, QEvent, QTimer, QObject, QPointF, Slot, QProcess
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QStackedWidget, QAbstractSlider
 
 from touchdeck.constants import WINDOW_W, WINDOW_H, CORNER_RADIUS
 from touchdeck.ui.pages import MusicPage, StatsPage, ClockPage, SettingsPage, SpeedtestPage, EmojiPage
-from touchdeck.ui.widgets import DotIndicator
+from touchdeck.ui.widgets import DotIndicator, QuickActionsDrawer, OnboardingOverlay, NotificationStack, StartupOverlay
 from touchdeck.services.mpris import MprisService
 from touchdeck.services.stats import StatsService
 from touchdeck.services.speedtest import SpeedtestService
-from touchdeck.settings import load_settings, save_settings, Settings
+from touchdeck.services.notifications import NotificationListener, SystemNotification
+from touchdeck.settings import load_settings, save_settings, reset_settings, Settings, DEFAULT_PAGE_KEYS
 from touchdeck.themes import build_qss, get_theme, Theme
+from touchdeck.quick_actions import quick_action_lookup, QuickActionOption
 
 
 @dataclass
@@ -39,8 +43,10 @@ class SwipeNavigator(QObject):
 
         # Tune for 800x480-ish touch panels
         self.min_dx_px = 110
+        self.min_dy_px = 90
         self.max_dt_s = 0.85
         self.axis_bias = 1.35  # |dx| must be this much bigger than |dy|
+        self.drawer_start_zone = 120
 
     def eventFilter(self, obj, ev) -> bool:  # noqa: N802
         t = ev.type()
@@ -79,10 +85,14 @@ class SwipeNavigator(QObject):
         # If the swipe starts on a slider (seeking), let the slider win.
         w = self.host.childAt(int(pos.x()), int(pos.y()))
         while w is not None:
+            if getattr(w, "objectName", lambda: "")() == "NotificationToast":
+                return True
             if isinstance(w, QAbstractSlider):
                 return True
             # also ignore if user starts on a button (tap should click)
             if w.metaObject().className() in ("QPushButton", "QToolButton"):
+                if hasattr(self.host, "drawer") and getattr(self.host, "drawer").isAncestorOf(w):
+                    return False
                 return True
             w = w.parentWidget()
         return False
@@ -106,6 +116,21 @@ class SwipeNavigator(QObject):
 
         if dt > self.max_dt_s:
             return
+
+        # Allow easy downward swipe to close the drawer even with small movement.
+        if dy > 30 and abs(dy) > abs(dx) and self.host.should_close_quick_actions():
+            self.host.close_quick_actions()
+            return
+
+        # Vertical swipe: toggle quick actions drawer
+        if abs(dy) >= self.min_dy_px and abs(dy) > abs(dx) * self.axis_bias:
+            if dy < 0 and self.host.can_open_quick_actions(self.s.start_pos, self.drawer_start_zone):
+                self.host.open_quick_actions()
+                return
+            if dy > 0 and self.host.should_close_quick_actions():
+                self.host.close_quick_actions()
+                return
+
         if abs(dx) < self.min_dx_px:
             return
         if abs(dx) < abs(dy) * self.axis_bias:
@@ -118,16 +143,21 @@ class SwipeNavigator(QObject):
 
 
 class DeckWindow(QWidget):
-    def __init__(self, settings: Settings | None = None) -> None:
+    def __init__(self, settings: Settings | None = None, logo_icon: QIcon | None = None) -> None:
         super().__init__()
         self.setObjectName("DeckWindow")
         self.setWindowTitle("touchdeck")
-        self.setFixedSize(WINDOW_W, WINDOW_H)
         self.setAttribute(Qt.WA_AcceptTouchEvents, True)
         self.setStyleSheet(f"border-radius: {CORNER_RADIUS}px;")
 
         self.settings = settings or load_settings()
         self._theme: Theme = get_theme(self.settings.theme)
+        self._quick_action_options = quick_action_lookup()
+
+        if self.settings.demo_mode:
+            self._set_demo_window()
+        else:
+            self._clear_fixed_window()
 
         self._mpris = MprisService()
         self._stats = StatsService(enable_gpu=self.settings.enable_gpu_stats)
@@ -139,23 +169,60 @@ class DeckWindow(QWidget):
         self.page_clock = ClockPage(self.settings, theme=self._theme)
         self.page_emoji = EmojiPage(theme=self._theme)
         self.page_speedtest = SpeedtestPage(self._on_speedtest_requested, theme=self._theme)
-        self.page_settings = SettingsPage(self.settings, self._on_settings_changed, theme=self._theme)
+        self.page_settings = SettingsPage(
+            self.settings,
+            self._on_settings_changed,
+            self._on_exit_requested,
+            self._on_reset_requested,
+            theme=self._theme,
+        )
 
-        self.stack.addWidget(self.page_music)
-        self.stack.addWidget(self.page_stats)
-        self.stack.addWidget(self.page_clock)
-        self.stack.addWidget(self.page_emoji)
-        self.stack.addWidget(self.page_speedtest)
-        self.stack.addWidget(self.page_settings)
+        self._pages = {
+            "music": self.page_music,
+            "stats": self.page_stats,
+            "clock": self.page_clock,
+            "emoji": self.page_emoji,
+            "speedtest": self.page_speedtest,
+            "settings": self.page_settings,
+        }
+        self._enabled_pages: list[str] = []
+        self._rebuild_stack()
 
         self.dots = DotIndicator(self.stack.count(), theme=self._theme)
-        self.dots.set_index(0)
+        self.dots.set_index(self.stack.currentIndex())
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 12)
         root.setSpacing(8)
         root.addWidget(self.stack, 1)
         root.addWidget(self.dots, 0)
+
+        self.drawer = QuickActionsDrawer(self._on_quick_action_triggered, parent=self, theme=self._theme)
+        self.drawer.update_actions(self._selected_quick_actions())
+        self.drawer.set_bounds(self.width(), self.height())
+        self.drawer.raise_()
+
+        self.onboarding = OnboardingOverlay(
+            parent=self,
+            theme=self._theme,
+            on_finished=self._on_onboarding_finished,
+        )
+        self.onboarding.set_bounds(self.width(), self.height())
+        if not self.settings.onboarding_completed:
+            self.onboarding.start()
+        else:
+            self.onboarding.hide()
+
+        self.notification_stack = NotificationStack(parent=self, theme=self._theme)
+        self.notification_stack.set_bounds(self.width(), self.height())
+        self.notification_stack.raise_()
+
+        self.startup = StartupOverlay(logo_icon, parent=self, theme=self._theme)
+        self.startup.set_bounds(self.width(), self.height())
+        self.startup.raise_()
+
+        self._notification_listener = NotificationListener(self._on_system_notification)
+        self._start_notification_listener()
 
         # swipe handler
         self._swipe = SwipeNavigator(self)
@@ -169,6 +236,7 @@ class DeckWindow(QWidget):
         self.page_speedtest.installEventFilter(self._swipe)
         self.page_settings.installEventFilter(self._swipe)
         self.dots.installEventFilter(self._swipe)
+        self.drawer.installEventFilter(self._swipe)
 
         # wire music controls
         self.page_music.bind_controls(
@@ -192,6 +260,7 @@ class DeckWindow(QWidget):
         self._apply_theme(self._theme)
         # apply initial settings now that timers exist
         self._apply_settings()
+        self.startup.start()
 
     # Public for SwipeNavigator
     def next_page(self) -> None:
@@ -204,7 +273,54 @@ class DeckWindow(QWidget):
 
     def _set_page(self, idx: int) -> None:
         self.stack.setCurrentIndex(idx)
-        self.dots.set_index(idx)
+        if hasattr(self, "dots"):
+            self.dots.set_index(idx)
+
+    def resizeEvent(self, event) -> None:  # noqa: N802
+        super().resizeEvent(event)
+        self.drawer.set_bounds(self.width(), self.height())
+        self.onboarding.set_bounds(self.width(), self.height())
+        self.notification_stack.set_bounds(self.width(), self.height())
+        self.startup.set_bounds(self.width(), self.height())
+
+    def showEvent(self, event) -> None:  # noqa: N802
+        super().showEvent(event)
+        self._apply_display_preference()
+        self._start_notification_listener()
+
+    def _effective_enabled_pages(self) -> list[str]:
+        pages = [p for p in self.settings.enabled_pages if p in self._pages]
+        if "settings" not in pages:
+            pages.append("settings")
+        if not pages:
+            pages = ["settings"]
+        ordered = [p for p in DEFAULT_PAGE_KEYS if p in pages]
+        for p in pages:
+            if p not in ordered:
+                ordered.append(p)
+        return ordered
+
+    def _current_page_key(self) -> str | None:
+        current = self.stack.currentWidget()
+        for key, widget in self._pages.items():
+            if widget is current:
+                return key
+        return None
+
+    def _rebuild_stack(self, keep_key: str | None = None) -> None:
+        current_key = keep_key or self._current_page_key()
+        for i in range(self.stack.count() - 1, -1, -1):
+            widget = self.stack.widget(i)
+            self.stack.removeWidget(widget)
+        enabled = self._effective_enabled_pages()
+        self._enabled_pages = enabled
+        for key in enabled:
+            self.stack.addWidget(self._pages[key])
+        target_key = current_key if current_key in enabled else enabled[0]
+        self._set_page(enabled.index(target_key))
+        if hasattr(self, "dots"):
+            self.dots.set_count(len(enabled))
+            self.dots.set_index(self.stack.currentIndex())
 
     def _apply_settings(self) -> None:
         new_theme = get_theme(self.settings.theme)
@@ -217,6 +333,18 @@ class DeckWindow(QWidget):
         self.page_stats.apply_settings(self.settings)
         self.page_clock.apply_settings(self.settings)
         self.page_settings.apply_settings(self.settings)
+        self._rebuild_stack(self._current_page_key())
+        if self.settings.demo_mode:
+            self._set_demo_window()
+            self.showNormal()
+        else:
+            self._clear_fixed_window()
+            self.showFullScreen()
+        self._apply_display_preference()
+        self.drawer.update_actions(self._selected_quick_actions())
+        self.drawer.set_bounds(self.width(), self.height())
+        if not self.drawer.has_actions():
+            self.drawer.close_drawer()
         self._stats.set_gpu_enabled(self.settings.enable_gpu_stats)
         self._timer_music.setInterval(self.settings.music_poll_ms)
         self._timer_stats.setInterval(self.settings.stats_poll_ms)
@@ -232,8 +360,37 @@ class DeckWindow(QWidget):
         self.page_speedtest.apply_theme(theme)
         self.page_settings.apply_theme(theme)
         self.dots.apply_theme(theme)
+        self.drawer.apply_theme(theme)
+        self.onboarding.apply_theme(theme)
+        self.notification_stack.apply_theme(theme)
+        self.startup.apply_theme(theme)
         # Keep window border radius styling intact
         self.setStyleSheet(f"border-radius: {CORNER_RADIUS}px;")
+
+    def _apply_display_preference(self) -> None:
+        app = QApplication.instance()
+        if app is None:
+            return
+        screens = app.screens()
+        target = None
+        if self.settings.preferred_display:
+            for s in screens:
+                if s.name() == self.settings.preferred_display:
+                    target = s
+                    break
+        if target is None and screens:
+            target = screens[0]
+        handle = self.windowHandle()
+        if handle is not None and target is not None:
+            handle.setScreen(target)
+
+    def _set_demo_window(self) -> None:
+        self._clear_fixed_window()
+        self.setFixedSize(WINDOW_W, WINDOW_H)
+
+    def _clear_fixed_window(self) -> None:
+        self.setMinimumSize(0, 0)
+        self.setMaximumSize(16777215, 16777215)
 
     # ----- Poll + update UI -----
     @Slot()
@@ -248,6 +405,22 @@ class DeckWindow(QWidget):
     def _poll_stats(self) -> None:
         s = self._stats.read()
         self.page_stats.set_stats(s)
+
+    def _on_system_notification(self, notification: SystemNotification) -> None:
+        duration = notification.expire_ms if notification.expire_ms and notification.expire_ms > 0 else None
+        self.notification_stack.show_notification(notification.app_name, notification.summary, notification.body, duration_ms=duration)
+
+    def _start_notification_listener(self) -> None:
+        # Create task on the current loop when one exists and is running.
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            return
+        try:
+            loop.create_task(self._notification_listener.start())
+        except RuntimeError:
+            # Loop not running yet; we'll try again on showEvent.
+            pass
 
     # ----- Control callbacks -----
     @Slot()
@@ -287,7 +460,21 @@ class DeckWindow(QWidget):
         save_settings(self.settings)
         self._apply_settings()
 
+    def _on_exit_requested(self) -> None:
+        app = QApplication.instance()
+        if app is not None:
+            app.quit()
+
+    def _on_reset_requested(self) -> None:
+        # Clear persisted settings and restart the app fresh.
+        reset_settings()
+        app = QApplication.instance()
+        if app is not None:
+            QProcess.startDetached(sys.executable or "python", ["-m", "touchdeck"])
+            app.quit()
+
     def _on_speedtest_requested(self) -> None:
+        self.page_speedtest.set_running(True)
         asyncio.create_task(self._run_speedtest())
 
     async def _run_speedtest(self) -> None:
@@ -297,3 +484,48 @@ class DeckWindow(QWidget):
             self.page_speedtest.show_error(str(exc))
             return
         self.page_speedtest.show_result(result)
+
+    def _selected_quick_actions(self) -> list[QuickActionOption]:
+        return [self._quick_action_options[key] for key in self.settings.quick_actions if key in self._quick_action_options]
+
+    def _on_quick_action_triggered(self, key: str) -> None:
+        actions = {
+            "play_pause": self._on_playpause,
+            "next_track": self._on_next,
+            "prev_track": self._on_prev,
+            "run_speedtest": self._on_speedtest_requested,
+            "toggle_gpu": self._toggle_gpu_stats_from_action,
+        }
+        action = actions.get(key)
+        if action is not None:
+            action()
+        self.close_quick_actions()
+
+    def _toggle_gpu_stats_from_action(self) -> None:
+        new_settings = replace(self.settings, enable_gpu_stats=not self.settings.enable_gpu_stats)
+        self._on_settings_changed(new_settings)
+
+    def _on_onboarding_finished(self) -> None:
+        if self.settings.onboarding_completed:
+            return
+        self.settings = replace(self.settings, onboarding_completed=True)
+        save_settings(self.settings)
+
+    def open_quick_actions(self) -> None:
+        if self.drawer.has_actions():
+            self.drawer.raise_()
+            self.drawer.open_drawer()
+
+    def close_quick_actions(self) -> None:
+        if self.drawer.is_open():
+            self.drawer.close_drawer()
+
+    def can_open_quick_actions(self, start_pos: QPointF, start_zone_px: int) -> bool:
+        if start_pos is None:
+            return False
+        if self.drawer.is_open() or not self.drawer.has_actions():
+            return False
+        return start_pos.y() >= (self.height() - start_zone_px)
+
+    def should_close_quick_actions(self) -> bool:
+        return self.drawer.is_open()

@@ -1,4 +1,6 @@
-# touchdeck
+<p align="center">
+    <img src="touchdeck/images/logo.svg" alt="touchdeck logo" width="320" />
+</p>
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Static Badge](https://img.shields.io/badge/Python-Python?style=flat&logo=Python&logoColor=white&labelColor=gray)
@@ -14,6 +16,7 @@ Touch-friendly “Stream Deck-like” UI for small landscape displays, focused o
 - Speedtest page powered by `speedtest-cli`
 - Clock page with 12/24h and optional seconds
 - Themes and swipe navigation, tuned for 800x480 touch displays
+- Swipe-up drawer with configurable quick actions
 
 > [!WARNING]
 > touchdeck is early-stage software. Expect rough edges and please report issues with steps.
@@ -60,6 +63,7 @@ python -m touchdeck
   - `stats_poll_ms`: 1000
   - `ui_opacity_percent`: 90
   - `theme`: `midnight`
+  - `quick_actions`: `["play_pause", "next_track", "run_speedtest"]`
 - Available themes: `midnight`, `glacier`, `sunset`
 
 Example:
@@ -71,7 +75,8 @@ Example:
   "music_poll_ms": 750,
   "stats_poll_ms": 1500,
   "ui_opacity_percent": 90,
-  "theme": "glacier"
+  "theme": "glacier",
+  "quick_actions": ["play_pause", "run_speedtest", "toggle_gpu"]
 }
 ```
 
@@ -92,3 +97,12 @@ Example:
 
 ## License
 touchdeck is licensed under the MIT License. See `LICENSE` for details.
+
+### Logo license
+
+The “touchdeck” logo is © 2025 codesft. It is licensed under
+Creative Commons Attribution–NoDerivatives 4.0 International (CC BY-ND 4.0):
+https://creativecommons.org/licenses/by-nd/4.0/
+
+You may use and redistribute unmodified copies of the logo (including for commercial purposes),
+as long as you provide attribution. Do not share modified versions.

@@ -20,14 +20,26 @@ from PySide6.QtWidgets import (
     QFrame,
     QComboBox,
     QGridLayout,
+    QCheckBox,
 )
 
-from touchdeck.settings import Settings
+from touchdeck.settings import Settings, DEFAULT_PAGE_KEYS
+from touchdeck.quick_actions import AVAILABLE_QUICK_ACTIONS, filter_quick_action_keys
 from touchdeck.services.speedtest import SpeedtestResult
 from touchdeck.utils import NowPlaying, ms_to_mmss
 from touchdeck.ui.widgets import Card, IconButton, StatRow, ElideLabel
 from touchdeck.services.stats import Stats
 from touchdeck.themes import Theme, DEFAULT_THEME_KEY, get_theme, theme_options
+
+
+PAGE_LABELS = {
+    "music": "Music",
+    "stats": "System stats",
+    "clock": "Clock",
+    "emoji": "Emoji",
+    "speedtest": "Speed test",
+    "settings": "Settings",
+}
 
 
 def _rounded_pixmap(src: QPixmap, size: int, radius: int) -> QPixmap:
@@ -496,12 +508,22 @@ class EmojiPage(QWidget):
 
 
 class SettingsPage(QWidget):
-    def __init__(self, settings: Settings, on_change, parent: QWidget | None = None, theme: Theme | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        on_change,
+        on_exit,
+        on_reset,
+        parent: QWidget | None = None,
+        theme: Theme | None = None,
+    ) -> None:
         super().__init__(parent)
         self._on_change = on_change
+        self._on_exit = on_exit
+        self._on_reset = on_reset
         self._settings = settings
         self._theme = theme or get_theme(settings.theme)
-        self._syncing = False
+        self._syncing = True  # suppress change events until initial wiring completes
         self.card = Card(theme=self._theme)
 
         title = QLabel("Settings")
@@ -511,6 +533,38 @@ class SettingsPage(QWidget):
         self.toggle_gpu = ToggleRow("Enable GPU stats", initial=settings.enable_gpu_stats, on_change=self._emit_change, theme=self._theme)
         self.toggle_clock = ToggleRow("24-hour clock", initial=settings.clock_24h, on_change=self._emit_change, theme=self._theme)
         self.toggle_seconds = ToggleRow("Show seconds on clock", initial=settings.show_clock_seconds, on_change=self._emit_change, theme=self._theme)
+        self.toggle_demo = ToggleRow("Demo mode (windowed)", initial=settings.demo_mode, on_change=self._emit_change, theme=self._theme)
+
+        # Page selector
+        self.page_checks: list[tuple[str, QCheckBox]] = []
+        page_grid = QGridLayout()
+        page_grid.setContentsMargins(0, 0, 0, 0)
+        page_grid.setSpacing(8)
+        for idx, key in enumerate(DEFAULT_PAGE_KEYS):
+            label = PAGE_LABELS.get(key, key.title())
+            cb = QCheckBox(label)
+            cb.stateChanged.connect(self._emit_change)
+            if key == "settings":
+                cb.setChecked(True)
+                cb.setEnabled(False)
+            self._style_checkbox(cb)
+            row, col = divmod(idx, 2)
+            page_grid.addWidget(cb, row, col)
+            self.page_checks.append((key, cb))
+
+        # Quick actions
+        self.quick_action_checks: list[tuple[str, QCheckBox]] = []
+        quick_actions_grid = QGridLayout()
+        quick_actions_grid.setContentsMargins(0, 0, 0, 0)
+        quick_actions_grid.setSpacing(8)
+        for idx, action in enumerate(AVAILABLE_QUICK_ACTIONS):
+            cb = QCheckBox(action.label)
+            cb.setToolTip(action.description)
+            cb.stateChanged.connect(self._emit_change)
+            self._style_checkbox(cb)
+            row, col = divmod(idx, 2)
+            quick_actions_grid.addWidget(cb, row, col)
+            self.quick_action_checks.append((action.key, cb))
 
         # Theme selector
         theme_row = QHBoxLayout()
@@ -566,6 +620,13 @@ class SettingsPage(QWidget):
         self.card.body.addWidget(self.toggle_gpu)
         self.card.body.addWidget(self.toggle_clock)
         self.card.body.addWidget(self.toggle_seconds)
+        self.card.body.addWidget(self.toggle_demo)
+        self.card.body.addSpacing(10)
+        self.card.body.addWidget(self._section_title("Pages"))
+        self.card.body.addLayout(page_grid)
+        self.card.body.addSpacing(10)
+        self.card.body.addWidget(self._section_title("Quick actions"))
+        self.card.body.addLayout(quick_actions_grid)
         self.card.body.addSpacing(6)
         self.card.body.addLayout(theme_row)
         self.card.body.addSpacing(14)
@@ -578,6 +639,15 @@ class SettingsPage(QWidget):
         self.card.body.addWidget(self.music_poll)
         self.card.body.addLayout(stats_row)
         self.card.body.addWidget(self.stats_poll)
+        self.card.body.addSpacing(14)
+        self.exit_btn = QPushButton("Exit TouchDeck")
+        self.exit_btn.clicked.connect(self._on_exit_clicked)
+        self._style_exit_button(self.exit_btn)
+        self.reset_btn = QPushButton("Reset app data and restart")
+        self.reset_btn.clicked.connect(self._on_reset_clicked)
+        self._style_reset_button(self.reset_btn)
+        self.card.body.addWidget(self.exit_btn)
+        self.card.body.addWidget(self.reset_btn)
 
         content = QWidget()
         content_lay = QVBoxLayout(content)
@@ -599,10 +669,21 @@ class SettingsPage(QWidget):
         self.toggle_gpu.set_checked(settings.enable_gpu_stats)
         self.toggle_clock.set_checked(settings.clock_24h)
         self.toggle_seconds.set_checked(settings.show_clock_seconds)
+        self.toggle_demo.set_checked(settings.demo_mode)
+        selected_pages = set(settings.enabled_pages)
+        for key, cb in self.page_checks:
+            cb.blockSignals(True)
+            cb.setChecked(key in selected_pages or key == "settings")
+            cb.blockSignals(False)
         self._set_theme_picker(settings.theme)
         self.brightness.blockSignals(True)
         self.brightness.setValue(settings.ui_opacity_percent)
         self.brightness.blockSignals(False)
+        selected_actions = set(settings.quick_actions)
+        for key, cb in self.quick_action_checks:
+            cb.blockSignals(True)
+            cb.setChecked(key in selected_actions)
+            cb.blockSignals(False)
         self._on_brightness_change(settings.ui_opacity_percent)
         self.music_poll.blockSignals(True)
         self.music_poll.setValue(settings.music_poll_ms)
@@ -628,6 +709,12 @@ class SettingsPage(QWidget):
             stats_poll_ms=self.stats_poll.value(),
             ui_opacity_percent=self.brightness.value(),
             theme=self.theme_picker.currentData() or DEFAULT_THEME_KEY,
+            quick_actions=self._selected_quick_actions(),
+            preferred_display=self._settings.preferred_display,
+            demo_mode=self.toggle_demo.is_checked(),
+            display_selected=self._settings.display_selected,
+            onboarding_completed=self._settings.onboarding_completed,
+            enabled_pages=self._selected_pages(),
         )
         if callable(self._on_change):
             self._on_change(new_settings)
@@ -655,8 +742,15 @@ class SettingsPage(QWidget):
         self.toggle_gpu.apply_theme(theme)
         self.toggle_clock.apply_theme(theme)
         self.toggle_seconds.apply_theme(theme)
+        self.toggle_demo.apply_theme(theme)
         self._style_sliders()
         self._style_theme_picker()
+        for _, cb in self.quick_action_checks:
+            self._style_checkbox(cb)
+        for _, cb in self.page_checks:
+            self._style_checkbox(cb)
+        self._style_exit_button(self.exit_btn)
+        self._style_reset_button(self.reset_btn)
 
     def _style_sliders(self) -> None:
         # Make sliders chunkier for touch
@@ -697,6 +791,90 @@ class SettingsPage(QWidget):
             }}
             """
         )
+
+    def _selected_quick_actions(self) -> list[str]:
+        chosen = [key for key, cb in self.quick_action_checks if cb.isChecked()]
+        return filter_quick_action_keys(chosen)
+
+    def _selected_pages(self) -> list[str]:
+        chosen = [key for key, cb in self.page_checks if cb.isChecked() or key == "settings"]
+        # Maintain canonical ordering
+        ordered = [p for p in DEFAULT_PAGE_KEYS if p in chosen]
+        for p in chosen:
+            if p not in ordered:
+                ordered.append(p)
+        if "settings" not in ordered:
+            ordered.append("settings")
+        return ordered
+
+    def _style_checkbox(self, cb: QCheckBox) -> None:
+        cb.setStyleSheet(
+            f"""
+            QCheckBox {{
+                font-size: 17px;
+                padding: 10px 4px;
+                color: {self._theme.text};
+            }}
+            QCheckBox::indicator {{
+                width: 26px;
+                height: 26px;
+            }}
+            QCheckBox::indicator:unchecked {{
+                border-radius: 6px;
+                border: 2px solid {self._theme.neutral_hover};
+                background: {self._theme.neutral};
+            }}
+            QCheckBox::indicator:checked {{
+                border-radius: 6px;
+                background: {self._theme.accent};
+                border: 2px solid {self._theme.accent};
+            }}
+            """
+        )
+
+    def _style_exit_button(self, btn: QPushButton) -> None:
+        btn.setCursor(Qt.PointingHandCursor)
+        btn.setStyleSheet(
+            f"""
+            QPushButton {{
+                padding: 12px 16px;
+                border-radius: 14px;
+                background: {self._theme.accent};
+                color: {self._theme.background};
+                font-size: 18px;
+                font-weight: 750;
+            }}
+            QPushButton:pressed {{
+                background: {self._theme.accent_pressed};
+            }}
+            """
+        )
+
+    def _style_reset_button(self, btn: QPushButton) -> None:
+        btn.setCursor(Qt.PointingHandCursor)
+        btn.setStyleSheet(
+            f"""
+            QPushButton {{
+                padding: 12px 16px;
+                border-radius: 14px;
+                background: {self._theme.neutral};
+                color: {self._theme.text};
+                font-size: 16px;
+                font-weight: 700;
+            }}
+            QPushButton:pressed {{
+                background: {self._theme.neutral_pressed};
+            }}
+            """
+        )
+
+    def _on_exit_clicked(self) -> None:
+        if callable(self._on_exit):
+            self._on_exit()
+
+    def _on_reset_clicked(self) -> None:
+        if callable(self._on_reset):
+            self._on_reset()
 
     def _section_title(self, text: str) -> QLabel:
         lbl = QLabel(text)
