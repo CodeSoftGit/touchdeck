@@ -1,76 +1,94 @@
 # touchdeck
 
-A touchscreen “Stream Deck-like” UI for small displays:
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Static Badge](https://img.shields.io/badge/Python-Python?style=flat&logo=Python&logoColor=white&labelColor=gray)
 
-- **Now Playing** page using **MPRIS over D-Bus** (Linux desktops)
-- **System Stats** page (CPU/RAM + optional NVIDIA GPU via NVML)
-- **Clock** page
-- **Swipe** left/right to switch pages
-- **Themes** for how *you* want your touchdeck to look
-- **And more!**
 
-> [!CAUTION]
-> touchdeck is alpha software and should be treated as such.
+Touch-friendly “Stream Deck-like” UI for small landscape displays, focused on quick music controls and system stats.
 
-> [!IMPORTANT]
-> touchdeck is developed Linux-first, though may work on Windows. Support will not be provided for other platforms.
+<img width="794" height="507" alt="touchdeck screenshot" src="https://github.com/user-attachments/assets/e11b0a90-857f-47ad-b9c8-e6f25e89dd63" />
 
-<img width="794" height="507" alt="image" src="https://github.com/user-attachments/assets/e11b0a90-857f-47ad-b9c8-e6f25e89dd63" />
+## What it does
+- Now Playing page with transport + seek using MPRIS over D-Bus (Linux-first; Windows is experimental)
+- System Stats page (CPU/RAM + optional NVIDIA GPU via NVML)
+- Speedtest page powered by `speedtest-cli`
+- Clock page with 12/24h and optional seconds
+- Themes and swipe navigation, tuned for 800x480 touch displays
 
+> [!WARNING]
+> touchdeck is early-stage software. Expect rough edges and please report issues with steps.
+
+## Requirements
+- Python 3.10+
+- Linux desktop with D-Bus and an MPRIS-compatible player running (Spotify, VLC, etc.)
+- PySide6 runtime (installed via dependencies)
+- Optional: NVIDIA GPU + NVML for GPU stats (`nvidia-ml-py`)
+- A small landscape display (defaults to 800x480) with touch input
 
 ## Install
-### using uv (Recommended)
-
-Set up your environment:
+### Using uv (recommended)
 ```bash
 uv venv
 uv sync
-```
-Optionally install NVIDIA features:
-```bash
+# Optional GPU support
 uv pip install nvidia-ml-py
 ```
 
-### using pip
-
+### Using pip
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -U pip
-pip install -e ".[nvidia]"
-```
-
-If you don't have an NVIDIA GPU, skip `.[nvidia]`:
-
-```bash
-pip install -e .
+pip install -e ".[nvidia]"   # drop [nvidia] if you don't need GPU stats
 ```
 
 ## Run
-### If you installed with uv
-
 ```bash
-uv run touchdeck
-```
-
-# If you installed with pip
-
-```bash
-touchdeck
+uv run touchdeck        # if installed via uv
+touchdeck               # if installed via pip
 # or
 python -m touchdeck
 ```
 
-## Notes
+## Configuration
+- Settings are stored at `~/.config/touchdeck/settings.json` (created on first save).
+- Defaults:
+  - `enable_gpu_stats`: true
+  - `clock_24h`: false
+  - `show_clock_seconds`: false
+  - `music_poll_ms`: 500
+  - `stats_poll_ms`: 1000
+  - `ui_opacity_percent`: 90
+  - `theme`: `midnight`
+- Available themes: `midnight`, `glacier`, `sunset`
 
-- Needs a running MPRIS-compatible player (Spotify, VLC, etc).
-- Built for a small landscape display (defaults to 800x480).
+Example:
+```json
+{
+  "enable_gpu_stats": false,
+  "clock_24h": true,
+  "show_clock_seconds": true,
+  "music_poll_ms": 750,
+  "stats_poll_ms": 1500,
+  "ui_opacity_percent": 90,
+  "theme": "glacier"
+}
+```
+
+## Troubleshooting
+- No Now Playing data: ensure a D-Bus/MPRIS-compatible player is running.
+- GPU stats empty: install `nvidia-ml-py` and confirm NVML is available, or set `enable_gpu_stats` to false.
+- Qt cannot open a display: run under X/Wayland with a reachable display and touch input.
+- Speedtest errors: requires network access; try again or skip the Speedtest page.
+
+## Development
+- Follow the setup in `CONTRIBUTING.md`.
+- Run locally with `uv run touchdeck` (or `python -m touchdeck` in an activated venv).
+- Update `CHANGELOG.md` for user-visible changes.
 
 ## Credits
-
-Uses Google Noto Color Emoji
-Built with Python and PySide6
+- Uses Google Noto Color Emoji
+- Built with Python and PySide6
 
 ## License
-
-touchdeck is license under the MIT License.
+touchdeck is licensed under the MIT License. See `LICENSE` for details.
