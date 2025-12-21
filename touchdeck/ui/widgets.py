@@ -3,8 +3,30 @@ from __future__ import annotations
 import math
 from typing import Callable
 
-from PySide6.QtCore import Qt, QSize, QRectF, QVariantAnimation, QAbstractAnimation, QPropertyAnimation, QEvent, QPoint, QPointF, QTimer
-from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QFontMetrics, QLinearGradient, QRadialGradient, QIcon, QPixmap
+from PySide6.QtCore import (
+    Qt,
+    QSize,
+    QRectF,
+    QVariantAnimation,
+    QAbstractAnimation,
+    QPropertyAnimation,
+    QEvent,
+    QPoint,
+    QPointF,
+    QTimer,
+    Signal,
+)
+from PySide6.QtGui import (
+    QColor,
+    QPainter,
+    QPainterPath,
+    QPen,
+    QFontMetrics,
+    QLinearGradient,
+    QRadialGradient,
+    QIcon,
+    QPixmap,
+)
 from PySide6.QtWidgets import (
     QWidget,
     QPushButton,
@@ -22,7 +44,12 @@ from touchdeck.quick_actions import QuickActionOption
 
 
 class Card(QWidget):
-    def __init__(self, radius: int = 22, parent: QWidget | None = None, theme: Theme | None = None) -> None:
+    def __init__(
+        self,
+        radius: int = 22,
+        parent: QWidget | None = None,
+        theme: Theme | None = None,
+    ) -> None:
         super().__init__(parent)
         self._radius = radius
         self._theme = theme or get_theme(None)
@@ -61,7 +88,13 @@ class ElideLabel(QLabel):
     Uses QFontMetrics.elidedText(...), which is pixel-based and reliable.
     """
 
-    def __init__(self, text: str = "", *, mode: Qt.TextElideMode = Qt.ElideRight, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        text: str = "",
+        *,
+        mode: Qt.TextElideMode = Qt.ElideRight,
+        parent: QWidget | None = None,
+    ) -> None:
         super().__init__("", parent)
         self._full = text or ""
         self._mode = mode
@@ -86,7 +119,9 @@ class ElideLabel(QLabel):
 
 
 class DotIndicator(QWidget):
-    def __init__(self, count: int, parent: QWidget | None = None, theme: Theme | None = None) -> None:
+    def __init__(
+        self, count: int, parent: QWidget | None = None, theme: Theme | None = None
+    ) -> None:
         super().__init__(parent)
         self._count = count
         self._index = 0
@@ -101,7 +136,11 @@ class DotIndicator(QWidget):
     def set_index(self, idx: int) -> None:
         idx = max(0, min(self._count - 1, idx))
         if idx != self._index:
-            start = self._anim_value if self._anim.state() == QAbstractAnimation.Running else float(self._index)
+            start = (
+                self._anim_value
+                if self._anim.state() == QAbstractAnimation.Running
+                else float(self._index)
+            )
             self._index = idx
             self._anim.stop()
             self._anim.setStartValue(start)
@@ -147,13 +186,21 @@ class DotIndicator(QWidget):
         active_cx = x0 + self._anim_value * dot_gap
         p.setBrush(QColor(self._theme.accent))
         p.setPen(Qt.NoPen)
-        p.drawEllipse(QRectF(active_cx - active_r, y - active_r, 2 * active_r, 2 * active_r))
+        p.drawEllipse(
+            QRectF(active_cx - active_r, y - active_r, 2 * active_r, 2 * active_r)
+        )
 
 
 class StartupOverlay(QWidget):
     """Short intro flash that fades the logo in/out on startup."""
 
-    def __init__(self, logo_icon: QIcon | None, *, parent: QWidget | None = None, theme: Theme | None = None) -> None:
+    def __init__(
+        self,
+        logo_icon: QIcon | None,
+        *,
+        parent: QWidget | None = None,
+        theme: Theme | None = None,
+    ) -> None:
         super().__init__(parent)
         self._theme = theme or get_theme(None)
         self._logo_icon = logo_icon or QIcon()
@@ -218,11 +265,13 @@ class StartupOverlay(QWidget):
 
         self._parallax = (math.sin(progress * math.pi) * 0.5 + 0.5) * 18.0
         self._sweep_progress = drift
-        self._echo_strength = (pulse ** 1.25) if pulse > 0.0 else 0.0
+        self._echo_strength = (pulse**1.25) if pulse > 0.0 else 0.0
 
         self._set_opacity(fade_in * (1.0 - fade_out * 0.9))
         self._scale = 0.9 + 0.16 * fade_in + 0.08 * hover - 0.05 * fade_out
-        self._glow_strength = clamp(0.25 + 0.55 * fade_in + 0.25 * pulse - 0.45 * fade_out, 0.0, 1.2)
+        self._glow_strength = clamp(
+            0.25 + 0.55 * fade_in + 0.25 * pulse - 0.45 * fade_out, 0.0, 1.2
+        )
         self._ring_strength = clamp(0.1 + 0.65 * pulse + 0.35 * linger, 0.0, 1.0)
         self.update()
 
@@ -258,7 +307,9 @@ class StartupOverlay(QWidget):
         if self._sweep_progress > 0.0:
             band_width = self.width() * 0.38
             sweep_x = (self._sweep_progress * 1.4 - 0.2) * self.width()
-            beam = QLinearGradient(sweep_x - band_width, 0, sweep_x + band_width, self.height())
+            beam = QLinearGradient(
+                sweep_x - band_width, 0, sweep_x + band_width, self.height()
+            )
             accent = QColor(self._theme.accent).lighter(135)
             accent_mid = QColor(accent)
             accent_mid.setAlphaF(0.7 * self._opacity * accent_mid.alphaF())
@@ -275,7 +326,9 @@ class StartupOverlay(QWidget):
         target_h = int(self._logo_pixmap.height() * self._scale)
         target_w = max(1, target_w)
         target_h = max(1, target_h)
-        scaled = self._logo_pixmap.scaled(target_w, target_h, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        scaled = self._logo_pixmap.scaled(
+            target_w, target_h, Qt.KeepAspectRatio, Qt.SmoothTransformation
+        )
         cx = self.width() / 2
         cy = self.height() / 2
         ring_radius_base = max(scaled.width(), scaled.height()) / 2 + 24
@@ -384,7 +437,9 @@ class IconButton(QPushButton):
         p.setPen(Qt.NoPen)
         p.setBrush(icon_color)
 
-        def triangle(center_x: float, center_y: float, w: float, h: float, direction: int) -> QPainterPath:
+        def triangle(
+            center_x: float, center_y: float, w: float, h: float, direction: int
+        ) -> QPainterPath:
             # direction: +1 = right, -1 = left
             path = QPainterPath()
             if direction > 0:
@@ -435,15 +490,20 @@ class QuickActionsDrawer(QWidget):
         theme: Theme | None = None,
         drawer_height: int = 220,
         peek_height: int = 16,
+        drawer_ratio: float = 0.8,
+        on_cancel=None,
     ) -> None:
         super().__init__(parent)
         self._on_trigger = on_trigger
+        self._on_cancel = on_cancel
         self._theme = theme or get_theme(None)
         self._drawer_height = drawer_height
         self._peek_height = peek_height
+        self._drawer_ratio = drawer_ratio
         self._is_open = False
         self._actions: list[QuickActionOption] = []
-        self._buttons: list[QPushButton] = []
+        self._buttons: list[QuickActionTile] = []
+        self._button_map: dict[str, QuickActionTile] = {}
 
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setFixedHeight(self._drawer_height)
@@ -485,9 +545,18 @@ class QuickActionsDrawer(QWidget):
     def has_actions(self) -> bool:
         return bool(self._actions)
 
-    def set_bounds(self, width: int, parent_height: int, *, animate: bool = False) -> None:
+    def set_bounds(
+        self, width: int, parent_height: int, *, animate: bool = False
+    ) -> None:
         self.setFixedWidth(width)
-        target_y = self._open_y(parent_height) if self._is_open else self._closed_y(parent_height)
+        if parent_height > 0:
+            self._drawer_height = max(200, int(parent_height * self._drawer_ratio))
+            self.setFixedHeight(self._drawer_height)
+        target_y = (
+            self._open_y(parent_height)
+            if self._is_open
+            else self._closed_y(parent_height)
+        )
         if animate:
             self._animate_to(target_y)
         else:
@@ -501,6 +570,7 @@ class QuickActionsDrawer(QWidget):
             if widget is not None:
                 widget.deleteLater()
         self._buttons.clear()
+        self._button_map.clear()
         self._actions = list(actions)
 
         if not actions:
@@ -510,20 +580,25 @@ class QuickActionsDrawer(QWidget):
 
         self.show()
         for idx, action in enumerate(actions):
-            btn = QPushButton(f"{action.label}\n{action.description}")
-            btn.setCursor(Qt.PointingHandCursor)
-            btn.setMinimumHeight(68)
-            btn.clicked.connect(lambda _=False, key=action.key: self._trigger(key))
-            self._style_button(btn)
+            detail = "Ready" if action.is_custom else action.description
+            btn = QuickActionTile(action.label, detail, theme=self._theme)
+            btn.clicked.connect(lambda key=action.key: self._trigger(key))
+            btn.long_pressed.connect(lambda key=action.key: self._cancel(key))
             row, col = divmod(idx, 2)
             self._actions_layout.addWidget(btn, row, col)
             self._buttons.append(btn)
+            self._button_map[action.key] = btn
 
     def apply_theme(self, theme: Theme) -> None:
         self._theme = theme
         self._apply_theme()
         for btn in self._buttons:
-            self._style_button(btn)
+            btn.apply_theme(theme)
+
+    def update_action_detail(self, key: str, detail: str) -> None:
+        btn = self._button_map.get(key)
+        if btn is not None:
+            btn.set_detail(detail)
 
     def open_drawer(self) -> None:
         if self._is_open or not self.has_actions():
@@ -554,6 +629,10 @@ class QuickActionsDrawer(QWidget):
         if callable(self._on_trigger):
             self._on_trigger(key)
 
+    def _cancel(self, key: str) -> None:
+        if callable(self._on_cancel):
+            self._on_cancel(key)
+
     def _open_y(self, parent_height: int) -> int:
         return max(0, parent_height - self._drawer_height)
 
@@ -582,20 +661,91 @@ class QuickActionsDrawer(QWidget):
             f"background: {self._theme.subtle}; border-radius: 3px;"
         )
 
-    def _style_button(self, btn: QPushButton) -> None:
-        btn.setStyleSheet(
+class QuickActionTile(QWidget):
+    clicked = Signal()
+    long_pressed = Signal()
+
+    def __init__(self, title: str, detail: str, *, theme: Theme | None = None) -> None:
+        super().__init__()
+        self._theme = theme or get_theme(None)
+        self._pressed = False
+        self._long_press_fired = False
+        self._press_timer = QTimer(self)
+        self._press_timer.setSingleShot(True)
+        self._press_timer.timeout.connect(self._emit_long_press)
+
+        self.setCursor(Qt.PointingHandCursor)
+        self.setAttribute(Qt.WA_StyledBackground, True)
+
+        self._title = QLabel(title)
+        self._title.setStyleSheet("font-size: 18px; font-weight: 700;")
+        self._title.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self._detail = ElideLabel(detail)
+        self._detail.setObjectName("QuickActionDetail")
+        self._detail.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(12, 10, 12, 10)
+        lay.setSpacing(4)
+        lay.addWidget(self._title)
+        lay.addWidget(self._detail)
+
+        self.setMinimumHeight(68)
+        self.apply_theme(self._theme)
+
+    def set_title(self, title: str) -> None:
+        self._title.setText(title)
+
+    def set_detail(self, detail: str) -> None:
+        self._detail.setText(detail)
+
+    def apply_theme(self, theme: Theme) -> None:
+        self._theme = theme
+        self._apply_style()
+
+    def mousePressEvent(self, ev) -> None:  # noqa: N802
+        if ev.button() == Qt.LeftButton:
+            self._pressed = True
+            self._long_press_fired = False
+            self._press_timer.start(5000)
+            self._apply_style()
+        super().mousePressEvent(ev)
+
+    def mouseReleaseEvent(self, ev) -> None:  # noqa: N802
+        if ev.button() == Qt.LeftButton:
+            if self._press_timer.isActive():
+                self._press_timer.stop()
+            if self._pressed and not self._long_press_fired:
+                self.clicked.emit()
+            self._pressed = False
+            self._apply_style()
+        super().mouseReleaseEvent(ev)
+
+    def leaveEvent(self, ev) -> None:  # noqa: N802
+        if self._press_timer.isActive():
+            self._press_timer.stop()
+        if self._pressed:
+            self._pressed = False
+            self._apply_style()
+        super().leaveEvent(ev)
+
+    def _emit_long_press(self) -> None:
+        self._long_press_fired = True
+        self.long_pressed.emit()
+
+    def _apply_style(self) -> None:
+        bg = self._theme.neutral_pressed if self._pressed else self._theme.neutral
+        self.setStyleSheet(
             f"""
-            QPushButton {{
-                text-align: left;
-                padding: 12px 14px;
-                font-size: 18px;
-                font-weight: 650;
+            QWidget {{
                 border-radius: 14px;
-                background: {self._theme.neutral};
+                background: {bg};
                 color: {self._theme.text};
             }}
-            QPushButton:pressed {{
-                background: {self._theme.neutral_pressed};
+            QLabel#QuickActionDetail {{
+                font-size: 14px;
+                font-weight: 600;
+                color: {self._theme.subtle};
             }}
             """
         )
@@ -690,7 +840,9 @@ class NotificationToast(QWidget):
     def set_on_closed(self, cb) -> None:
         self._on_closed = cb
 
-    def show_notification(self, app_name: str, summary: str, body: str, duration_ms: int | None = None) -> None:
+    def show_notification(
+        self, app_name: str, summary: str, body: str, duration_ms: int | None = None
+    ) -> None:
         clean_summary = " ".join((summary or "").splitlines()).strip()
         clean_body = " ".join((body or "").splitlines()).strip()
         title_parts = [p for p in (app_name, clean_summary) if p]
@@ -869,7 +1021,9 @@ class NotificationStack(QWidget):
             t.set_bounds(width, height)
         self._reflow()
 
-    def show_notification(self, app: str, summary: str, body: str, duration_ms: int | None = None) -> None:
+    def show_notification(
+        self, app: str, summary: str, body: str, duration_ms: int | None = None
+    ) -> None:
         if len(self._toasts) >= self._max_toasts:
             oldest = self._toasts.pop(0)
             oldest.hide_toast()
@@ -911,10 +1065,22 @@ class OnboardingOverlay(QWidget):
         self._on_finished = on_finished
         self._steps: list[tuple[str, str]] = [
             ("Welcome to TouchDeck", "A quick tour so you know what to expect."),
-            ("Alpha software", "TouchDeck is alpha software while we move fast and polish things."),
-            ("Linux-first", "TouchDeck is designed linux-first, so other platforms may need extra tweaks."),
-            ("Swipe between pages", "Swipe left and right anywhere on the deck to switch pages."),
-            ("Quick actions", "Swipe up from the bottom edge to view quick actions you have pinned."),
+            (
+                "Alpha software",
+                "TouchDeck is alpha software while we move fast and polish things.",
+            ),
+            (
+                "Linux-first",
+                "TouchDeck is designed linux-first, so other platforms may need extra tweaks.",
+            ),
+            (
+                "Swipe between pages",
+                "Swipe left and right anywhere on the deck to switch pages.",
+            ),
+            (
+                "Quick actions",
+                "Swipe up from the bottom edge to view quick actions you have pinned.",
+            ),
         ]
         self._index = 0
 
@@ -974,7 +1140,9 @@ class OnboardingOverlay(QWidget):
         self._theme = theme
         self._card.apply_theme(theme)
         self.setStyleSheet("background: rgba(0, 0, 0, 160);")
-        self._progress.setStyleSheet(f"color: {theme.subtle}; font-size: 14px; font-weight: 700;")
+        self._progress.setStyleSheet(
+            f"color: {theme.subtle}; font-size: 14px; font-weight: 700;"
+        )
         self._title.setStyleSheet("font-size: 26px; font-weight: 800;")
         self._description.setStyleSheet(f"font-size: 17px; color: {theme.subtle};")
         self._style_buttons()
@@ -1034,8 +1202,11 @@ class OnboardingOverlay(QWidget):
         target = max(320, width - 120)
         self._card.setFixedWidth(target)
 
+
 class StatRow(QWidget):
-    def __init__(self, label: str, parent: QWidget | None = None, theme: Theme | None = None) -> None:
+    def __init__(
+        self, label: str, parent: QWidget | None = None, theme: Theme | None = None
+    ) -> None:
         super().__init__(parent)
         self._theme = theme or get_theme(None)
         self._label = QLabel(label)

@@ -19,7 +19,9 @@ class SpeedtestService:
         try:
             import speedtest  # type: ignore
         except Exception as exc:  # pragma: no cover - best-effort import
-            raise RuntimeError("Install the 'speedtest-cli' package to run speed tests.") from exc
+            raise RuntimeError(
+                "Install the 'speedtest-cli' package to run speed tests."
+            ) from exc
 
         st = speedtest.Speedtest()
         st.get_best_server()

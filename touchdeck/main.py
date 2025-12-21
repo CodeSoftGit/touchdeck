@@ -40,14 +40,20 @@ def main() -> None:
     asyncio.set_event_loop(loop)
 
     if not settings.display_selected:
-        dlg = DisplayChoiceDialog(app.screens(), current_display=settings.preferred_display, demo_mode=settings.demo_mode)
+        dlg = DisplayChoiceDialog(
+            app.screens(),
+            current_display=settings.preferred_display,
+            demo_mode=settings.demo_mode,
+        )
         if dlg.exec() == QDialog.Accepted:
             settings.preferred_display = dlg.selected_display()
             settings.demo_mode = dlg.is_demo_mode()
             settings.display_selected = True
             save_settings(settings)
 
-    w = DeckWindow(settings=settings, logo_icon=app_icon, startup_logo_icon=full_logo_icon)
+    w = DeckWindow(
+        settings=settings, logo_icon=app_icon, startup_logo_icon=full_logo_icon
+    )
     if not app_icon.isNull():
         w.setWindowIcon(app_icon)
     if settings.demo_mode:

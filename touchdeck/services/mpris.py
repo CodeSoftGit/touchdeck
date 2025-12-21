@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Optional
+from typing import Any
 
 from dbus_next.aio import MessageBus
 from dbus_next.message import Message
@@ -54,7 +54,11 @@ class MprisService:
             )
         )
         names = body[0]
-        return [n for n in names if isinstance(n, str) and n.startswith("org.mpris.MediaPlayer2.")]
+        return [
+            n
+            for n in names
+            if isinstance(n, str) and n.startswith("org.mpris.MediaPlayer2.")
+        ]
 
     async def _get_prop(self, dest: str, iface: str, prop: str) -> Any:
         body = await self._call(
@@ -96,10 +100,16 @@ class MprisService:
                     return NowPlaying()
 
                 status: str = await self._get_prop(name, PLAYER_IFACE, "PlaybackStatus")
-                meta: dict[str, Any] = await self._get_prop(name, PLAYER_IFACE, "Metadata") or {}
-                can_seek: bool = bool(await self._get_prop(name, PLAYER_IFACE, "CanSeek"))
+                meta: dict[str, Any] = (
+                    await self._get_prop(name, PLAYER_IFACE, "Metadata") or {}
+                )
+                can_seek: bool = bool(
+                    await self._get_prop(name, PLAYER_IFACE, "CanSeek")
+                )
                 # Position is in microseconds
-                pos_us: int = int(await self._get_prop(name, PLAYER_IFACE, "Position") or 0)
+                pos_us: int = int(
+                    await self._get_prop(name, PLAYER_IFACE, "Position") or 0
+                )
 
                 title = first_str(meta.get("xesam:title")) or "Unknown Title"
                 artist = first_str(meta.get("xesam:artist")) or "Unknown Artist"
@@ -125,7 +135,9 @@ class MprisService:
                 # Keep UI alive even if a player vanishes mid-poll.
                 return NowPlaying()
 
-    async def _call_player(self, dest: str, member: str, signature: str = "", body: list[Any] | None = None) -> None:
+    async def _call_player(
+        self, dest: str, member: str, signature: str = "", body: list[Any] | None = None
+    ) -> None:
         if not dest:
             return
         await self._call(
@@ -150,4 +162,9 @@ class MprisService:
 
     async def set_position(self, dest: str, track_id: str, position_ms: int) -> None:
         # MPRIS SetPosition expects TrackId (object path) and Position (microseconds)
-        await self._call_player(dest, "SetPosition", signature="ox", body=[track_id, int(position_ms) * 1000])
+        await self._call_player(
+            dest,
+            "SetPosition",
+            signature="ox",
+            body=[track_id, int(position_ms) * 1000],
+        )

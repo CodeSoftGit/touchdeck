@@ -1,24 +1,68 @@
 from __future__ import annotations
 
 import asyncio
+import select
+import subprocess
+import threading
 from dataclasses import dataclass, replace
 import sys
 from time import monotonic
 
-from PySide6.QtCore import Qt, QEvent, QTimer, QObject, QPointF, Slot, QProcess
+from PySide6.QtCore import (
+    Qt,
+    QEvent,
+    QTimer,
+    QObject,
+    QPointF,
+    Slot,
+    QProcess,
+    QThread,
+    Signal,
+)
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QStackedWidget, QAbstractSlider
+from PySide6.QtWidgets import (
+    QApplication,
+    QWidget,
+    QVBoxLayout,
+    QStackedWidget,
+    QAbstractSlider,
+)
 
 from touchdeck.constants import WINDOW_W, WINDOW_H, CORNER_RADIUS
-from touchdeck.ui.pages import MusicPage, StatsPage, ClockPage, SettingsPage, SpeedtestPage, EmojiPage
-from touchdeck.ui.widgets import DotIndicator, QuickActionsDrawer, OnboardingOverlay, NotificationStack, StartupOverlay
+from touchdeck.ui.pages import (
+    MusicPage,
+    StatsPage,
+    ClockPage,
+    SettingsPage,
+    SpeedtestPage,
+    EmojiPage,
+)
+from touchdeck.ui.widgets import (
+    DotIndicator,
+    QuickActionsDrawer,
+    OnboardingOverlay,
+    NotificationStack,
+    StartupOverlay,
+)
 from touchdeck.services.mpris import MprisService
 from touchdeck.services.stats import StatsService
 from touchdeck.services.speedtest import SpeedtestService
 from touchdeck.services.notifications import NotificationListener, SystemNotification
-from touchdeck.settings import load_settings, save_settings, reset_settings, Settings, DEFAULT_PAGE_KEYS
+from touchdeck.LRCLIB import LrclibClient, LyricLine, SyncedLyrics, LyricsNotFoundError
+from touchdeck.settings import (
+    load_settings,
+    save_settings,
+    reset_settings,
+    Settings,
+    DEFAULT_PAGE_KEYS,
+)
 from touchdeck.themes import build_qss, get_theme, Theme
-from touchdeck.quick_actions import quick_action_lookup, QuickActionOption
+from touchdeck.quick_actions import (
+    CustomQuickAction,
+    quick_action_lookup,
+    QuickActionOption,
+)
+from touchdeck.utils import ms_to_mmss
 
 
 @dataclass
@@ -27,6 +71,95 @@ class _SwipeState:
     ignore: bool = False
     start_pos: QPointF | None = None
     start_t: float = 0.0
+
+
+class _CommandWorker(QObject):
+    output = Signal(str)
+    finished = Signal(int, bool, bool)
+    error = Signal(str)
+
+    def __init__(
+        self, command: str, timeout_ms: int, cancel_event: threading.Event
+    ) -> None:
+        super().__init__()
+        self._command = command
+        self._timeout_ms = timeout_ms
+        self._cancel_event = cancel_event
+
+    @Slot()
+    def run(self) -> None:
+        start = monotonic()
+        timed_out = False
+        canceled = False
+        try:
+            proc = subprocess.Popen(
+                self._command,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+            )
+        except Exception as exc:
+            self.error.emit(str(exc))
+            self.finished.emit(1, False, False)
+            return
+
+        try:
+            stdout = proc.stdout
+            fd = stdout.fileno() if stdout else None
+            while True:
+                if self._cancel_event.is_set():
+                    canceled = True
+                    proc.terminate()
+                if self._timeout_ms > 0:
+                    elapsed_ms = int((monotonic() - start) * 1000)
+                    if elapsed_ms > self._timeout_ms:
+                        timed_out = True
+                        proc.terminate()
+
+                if fd is not None:
+                    ready, _, _ = select.select([fd], [], [], 0.2)
+                    if ready:
+                        line = stdout.readline()
+                        if line:
+                            self.output.emit(line.rstrip("\n"))
+                            continue
+
+                if proc.poll() is not None:
+                    break
+
+                if canceled or timed_out:
+                    try:
+                        proc.wait(timeout=1)
+                    except Exception:
+                        proc.kill()
+                        proc.wait()
+                    break
+
+            if stdout is not None:
+                for line in stdout:
+                    if line:
+                        self.output.emit(line.rstrip("\n"))
+        except Exception as exc:
+            self.error.emit(str(exc))
+        finally:
+            exit_code = proc.poll()
+            if exit_code is None:
+                try:
+                    exit_code = proc.wait(timeout=1)
+                except Exception:
+                    exit_code = 1
+            self.finished.emit(int(exit_code or 0), timed_out, canceled)
+
+
+@dataclass
+class _RunningCommand:
+    thread: QThread
+    worker: _CommandWorker
+    action: CustomQuickAction
+    cancel_event: threading.Event
+    last_line: str = ""
 
 
 class SwipeNavigator(QObject):
@@ -91,7 +224,9 @@ class SwipeNavigator(QObject):
                 return True
             # also ignore if user starts on a button (tap should click)
             if w.metaObject().className() in ("QPushButton", "QToolButton"):
-                if hasattr(self.host, "drawer") and getattr(self.host, "drawer").isAncestorOf(w):
+                if hasattr(self.host, "drawer") and getattr(
+                    self.host, "drawer"
+                ).isAncestorOf(w):
                     return False
                 return True
             w = w.parentWidget()
@@ -124,7 +259,9 @@ class SwipeNavigator(QObject):
 
         # Vertical swipe: toggle quick actions drawer
         if abs(dy) >= self.min_dy_px and abs(dy) > abs(dx) * self.axis_bias:
-            if dy < 0 and self.host.can_open_quick_actions(self.s.start_pos, self.drawer_start_zone):
+            if dy < 0 and self.host.can_open_quick_actions(
+                self.s.start_pos, self.drawer_start_zone
+            ):
                 self.host.open_quick_actions()
                 return
             if dy > 0 and self.host.should_close_quick_actions():
@@ -157,7 +294,9 @@ class DeckWindow(QWidget):
 
         self.settings = settings or load_settings()
         self._theme: Theme = get_theme(self.settings.theme)
-        self._quick_action_options = quick_action_lookup()
+        self._quick_action_options = quick_action_lookup(self.settings.custom_actions)
+        self._custom_actions = {a.key: a for a in self.settings.custom_actions}
+        self._running_custom_actions: dict[str, _RunningCommand] = {}
 
         if self.settings.demo_mode:
             self._set_demo_window()
@@ -165,6 +304,10 @@ class DeckWindow(QWidget):
             self._clear_fixed_window()
 
         self._mpris = MprisService()
+        self._lyrics_client = LrclibClient()
+        self._lyrics_task: asyncio.Task | None = None
+        self._lyrics_track_key: str | None = None
+        self._lyrics: SyncedLyrics | None = None
         self._stats = StatsService(enable_gpu=self.settings.enable_gpu_stats)
         self._speedtest = SpeedtestService()
 
@@ -173,7 +316,9 @@ class DeckWindow(QWidget):
         self.page_stats = StatsPage(self.settings, theme=self._theme)
         self.page_clock = ClockPage(self.settings, theme=self._theme)
         self.page_emoji = EmojiPage(theme=self._theme)
-        self.page_speedtest = SpeedtestPage(self._on_speedtest_requested, theme=self._theme)
+        self.page_speedtest = SpeedtestPage(
+            self._on_speedtest_requested, theme=self._theme
+        )
         self.page_settings = SettingsPage(
             self.settings,
             self._on_settings_changed,
@@ -202,7 +347,12 @@ class DeckWindow(QWidget):
         root.addWidget(self.stack, 1)
         root.addWidget(self.dots, 0)
 
-        self.drawer = QuickActionsDrawer(self._on_quick_action_triggered, parent=self, theme=self._theme)
+        self.drawer = QuickActionsDrawer(
+            self._on_quick_action_triggered,
+            parent=self,
+            theme=self._theme,
+            on_cancel=self._on_quick_action_canceled,
+        )
         self.drawer.update_actions(self._selected_quick_actions())
         self.drawer.set_bounds(self.width(), self.height())
         self.drawer.raise_()
@@ -222,7 +372,9 @@ class DeckWindow(QWidget):
         self.notification_stack.set_bounds(self.width(), self.height())
         self.notification_stack.raise_()
 
-        self.startup = StartupOverlay(startup_logo_icon or logo_icon, parent=self, theme=self._theme)
+        self.startup = StartupOverlay(
+            startup_logo_icon or logo_icon, parent=self, theme=self._theme
+        )
         self.startup.set_bounds(self.width(), self.height())
         self.startup.raise_()
 
@@ -338,6 +490,8 @@ class DeckWindow(QWidget):
         self.page_stats.apply_settings(self.settings)
         self.page_clock.apply_settings(self.settings)
         self.page_settings.apply_settings(self.settings)
+        self._custom_actions = {a.key: a for a in self.settings.custom_actions}
+        self._quick_action_options = quick_action_lookup(self.settings.custom_actions)
         self._rebuild_stack(self._current_page_key())
         if self.settings.demo_mode:
             self._set_demo_window()
@@ -404,7 +558,102 @@ class DeckWindow(QWidget):
 
     async def _poll_music_async(self) -> None:
         np = await self._mpris.now_playing()
+        self._maybe_update_lyrics(np)
         self.page_music.set_now_playing(np)
+
+    def _maybe_update_lyrics(self, np: NowPlaying) -> None:
+        key = self._lyrics_key(np)
+        if key == self._lyrics_track_key:
+            return
+        self._lyrics_track_key = key
+        self._lyrics = None
+        self.page_music.set_synced_lyrics(None)
+        self._cancel_lyrics_task()
+        if key is None:
+            return
+        cached = self._cached_lyrics_for_track(key)
+        if cached is not None:
+            self._lyrics = cached
+            self.page_music.set_synced_lyrics(cached)
+            return
+        self._lyrics_task = asyncio.create_task(self._fetch_lyrics(np, key))
+
+    def _cached_lyrics_for_track(self, track_key: str | None) -> SyncedLyrics | None:
+        if track_key is None:
+            return None
+        entries = self.settings.lyrics_cache.get(track_key)
+        if not isinstance(entries, list):
+            return None
+        lines: list[LyricLine] = []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            at_ms = entry.get("at_ms")
+            text = entry.get("text")
+            if not isinstance(at_ms, int) or at_ms < 0:
+                continue
+            if not isinstance(text, str):
+                continue
+            lines.append(LyricLine(at_ms=at_ms, text=text))
+        if not lines:
+            return None
+        lines.sort(key=lambda line: line.at_ms)
+        return SyncedLyrics(lines=lines)
+
+    def _lyrics_key(self, np: NowPlaying) -> str | None:
+        if not np.title or not np.artist:
+            return None
+        if not np.length_ms or np.length_ms <= 0:
+            return None
+        duration_s = int(round(np.length_ms / 1000))
+        album = np.album.strip() if np.album else ""
+        return f"{np.track_id or ''}|{np.title.strip()}|{np.artist.strip()}|{album}|{duration_s}"
+
+    def _cancel_lyrics_task(self) -> None:
+        if self._lyrics_task is None:
+            return
+        self._lyrics_task.cancel()
+        self._lyrics_task = None
+
+    async def _fetch_lyrics(self, np: NowPlaying, track_key: str) -> None:
+        not_found = False
+        try:
+            lyrics = await self._lyrics_client.fetch_synced(
+                track_name=np.title,
+                artist_name=np.artist,
+                album_name=np.album or "",
+                duration_ms=int(np.length_ms or 0),
+            )
+        except asyncio.CancelledError:
+            return
+        except LyricsNotFoundError:
+            lyrics = None
+            not_found = True
+        except Exception:
+            lyrics = None
+        finally:
+            if asyncio.current_task() is self._lyrics_task:
+                self._lyrics_task = None
+
+        if track_key != self._lyrics_track_key:
+            return
+        self._lyrics = lyrics
+        if lyrics is not None:
+            self._cache_lyrics(track_key, lyrics)
+        if not_found:
+            self.page_music.show_lyrics_message("Could not find lyrics", 10_000)
+        self.page_music.set_synced_lyrics(lyrics)
+
+    def _cache_lyrics(self, track_key: str, lyrics: SyncedLyrics) -> None:
+        lines = [
+            {"at_ms": line.at_ms, "text": line.text}
+            for line in lyrics.lines
+            if isinstance(line.text, str)
+        ]
+        if not lines:
+            return
+        self.settings.lyrics_cache[track_key] = lines
+        save_settings(self.settings)
 
     @Slot()
     def _poll_stats(self) -> None:
@@ -412,8 +661,17 @@ class DeckWindow(QWidget):
         self.page_stats.set_stats(s)
 
     def _on_system_notification(self, notification: SystemNotification) -> None:
-        duration = notification.expire_ms if notification.expire_ms and notification.expire_ms > 0 else None
-        self.notification_stack.show_notification(notification.app_name, notification.summary, notification.body, duration_ms=duration)
+        duration = (
+            notification.expire_ms
+            if notification.expire_ms and notification.expire_ms > 0
+            else None
+        )
+        self.notification_stack.show_notification(
+            notification.app_name,
+            notification.summary,
+            notification.body,
+            duration_ms=duration,
+        )
 
     def _start_notification_listener(self) -> None:
         # Create task on the current loop when one exists and is running.
@@ -491,7 +749,11 @@ class DeckWindow(QWidget):
         self.page_speedtest.show_result(result)
 
     def _selected_quick_actions(self) -> list[QuickActionOption]:
-        return [self._quick_action_options[key] for key in self.settings.quick_actions if key in self._quick_action_options]
+        return [
+            self._quick_action_options[key]
+            for key in self.settings.quick_actions
+            if key in self._quick_action_options
+        ]
 
     def _on_quick_action_triggered(self, key: str) -> None:
         actions = {
@@ -504,11 +766,123 @@ class DeckWindow(QWidget):
         action = actions.get(key)
         if action is not None:
             action()
+        elif key in self._custom_actions:
+            asyncio.create_task(self._run_custom_action(self._custom_actions[key]))
         self.close_quick_actions()
 
+    def _on_quick_action_canceled(self, key: str) -> None:
+        if key in self._custom_actions:
+            self._cancel_custom_action(key)
+
     def _toggle_gpu_stats_from_action(self) -> None:
-        new_settings = replace(self.settings, enable_gpu_stats=not self.settings.enable_gpu_stats)
+        new_settings = replace(
+            self.settings, enable_gpu_stats=not self.settings.enable_gpu_stats
+        )
         self._on_settings_changed(new_settings)
+
+    async def _run_custom_action(self, action: CustomQuickAction) -> None:
+        if action.key in self._running_custom_actions:
+            return
+        now_playing = await self._mpris.now_playing()
+        command = self._format_custom_command(action.command, now_playing)
+        cancel_event = threading.Event()
+        worker = _CommandWorker(command, action.timeout_ms, cancel_event)
+        thread = QThread(self)
+        worker.moveToThread(thread)
+        worker.output.connect(lambda line, key=action.key: self._on_action_output(key, line))
+        worker.error.connect(lambda msg, key=action.key: self._on_action_error(key, msg))
+        worker.finished.connect(
+            lambda code, timed_out, canceled, key=action.key: self._on_action_finished(
+                key, code, timed_out, canceled
+            )
+        )
+        worker.finished.connect(thread.quit)
+        worker.finished.connect(worker.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+        self._running_custom_actions[action.key] = _RunningCommand(
+            thread=thread,
+            worker=worker,
+            action=action,
+            cancel_event=cancel_event,
+            last_line="",
+        )
+        self.drawer.update_action_detail(action.key, "Running...")
+        thread.start()
+
+    def _cancel_custom_action(self, key: str) -> None:
+        running = self._running_custom_actions.get(key)
+        if running is None:
+            return
+        running.cancel_event.set()
+        self.drawer.update_action_detail(key, "Canceling...")
+
+    def _on_action_output(self, key: str, line: str) -> None:
+        running = self._running_custom_actions.get(key)
+        if running is None:
+            return
+        clean = " ".join((line or "").splitlines()).strip()
+        if not clean:
+            return
+        running.last_line = clean
+        self.drawer.update_action_detail(key, clean)
+
+    def _on_action_error(self, key: str, msg: str) -> None:
+        running = self._running_custom_actions.get(key)
+        if running is None:
+            return
+        clean = " ".join((msg or "").splitlines()).strip()
+        if clean:
+            running.last_line = clean
+            self.drawer.update_action_detail(key, clean)
+
+    def _on_action_finished(
+        self, key: str, exit_code: int, timed_out: bool, canceled: bool
+    ) -> None:
+        running = self._running_custom_actions.pop(key, None)
+        if running is None:
+            return
+        title = running.action.title
+        detail = running.last_line
+        if timed_out:
+            self.drawer.update_action_detail(key, "Timed out")
+            self._show_quick_action_toast(f"{title} timed out", detail)
+            return
+        if canceled:
+            self.drawer.update_action_detail(key, "Canceled")
+            self._show_quick_action_toast(f"{title} canceled", detail)
+            return
+        if exit_code == 0:
+            self._show_quick_action_toast(f"{title} succeeded", detail)
+        else:
+            self._show_quick_action_toast(f"{title} failed", detail)
+
+    def _show_quick_action_toast(self, summary: str, body: str) -> None:
+        self.notification_stack.show_notification(
+            "Quick actions", summary, body or "", duration_ms=3500
+        )
+
+    def _format_custom_command(self, template: str, now_playing) -> str:
+        ctx = {
+            "title": now_playing.title or "",
+            "artist": now_playing.artist or "",
+            "album": now_playing.album or "",
+            "status": now_playing.status or "",
+            "position_ms": str(now_playing.position_ms or 0),
+            "length_ms": str(now_playing.length_ms or 0),
+            "position_mmss": ms_to_mmss(int(now_playing.position_ms or 0)),
+            "length_mmss": ms_to_mmss(int(now_playing.length_ms or 0)),
+            "track_id": now_playing.track_id or "",
+            "bus_name": now_playing.bus_name or "",
+        }
+
+        class _SafeDict(dict):
+            def __missing__(self, key: str) -> str:
+                return ""
+
+        try:
+            return template.format_map(_SafeDict(ctx))
+        except Exception:
+            return template
 
     def _on_onboarding_finished(self) -> None:
         if self.settings.onboarding_completed:

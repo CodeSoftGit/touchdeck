@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 import psutil
 
@@ -62,7 +61,9 @@ class StatsService:
                 out.gpu_percent = float(util.gpu)
                 out.vram_used_gb = mem.used / (1024**3)
                 out.vram_total_gb = mem.total / (1024**3)
-                out.vram_percent = float(mem.used / mem.total * 100.0) if mem.total else None
+                out.vram_percent = (
+                    float(mem.used / mem.total * 100.0) if mem.total else None
+                )
             except Exception:
                 pass
 

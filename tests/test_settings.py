@@ -51,11 +51,56 @@ def test_load_settings_filters_quick_actions(tmp_path) -> None:
     config_path.write_text(
         json.dumps(
             {
-                "quick_actions": ["play_pause", "unknown", "run_speedtest", "play_pause"],
+                "custom_actions": [
+                    {
+                        "key": "custom-echo",
+                        "title": "Echo",
+                        "command": "echo hi",
+                        "timeout_ms": 5000,
+                    }
+                ],
+                "quick_actions": [
+                    "play_pause",
+                    "unknown",
+                    "run_speedtest",
+                    "play_pause",
+                    "custom-echo",
+                ],
             }
         )
     )
 
     loaded = settings.load_settings()
 
-    assert loaded.quick_actions == ["play_pause", "run_speedtest"]
+    assert loaded.quick_actions == ["play_pause", "run_speedtest", "custom-echo"]
+
+
+def test_load_settings_filters_lyrics_cache(tmp_path) -> None:
+    config_path = tmp_path / "settings.json"
+    settings._CONFIG_PATH = config_path
+    config_path.write_text(
+        json.dumps(
+            {
+                "lyrics_cache": {
+                    "valid": [
+                        {"at_ms": 100, "text": "line1"},
+                        {"at_ms": 200, "text": "line2"},
+                    ],
+                    "invalid": [
+                        {"at_ms": "nope", "text": "bad"},
+                        {"at_ms": -1, "text": "skip"},
+                    ],
+                    123: [{"at_ms": 300, "text": "bad key"}],
+                }
+            }
+        )
+    )
+
+    loaded = settings.load_settings()
+
+    assert loaded.lyrics_cache == {
+        "valid": [
+            {"at_ms": 100, "text": "line1"},
+            {"at_ms": 200, "text": "line2"},
+        ]
+    }

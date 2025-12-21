@@ -21,7 +21,11 @@ class SystemNotification:
 class NotificationListener:
     """Watches freedesktop.org system notifications and forwards them to the UI."""
 
-    def __init__(self, on_notify: Callable[[SystemNotification], None] | Callable[[SystemNotification], Awaitable[None]]) -> None:
+    def __init__(
+        self,
+        on_notify: Callable[[SystemNotification], None]
+        | Callable[[SystemNotification], Awaitable[None]],
+    ) -> None:
         self._on_notify = on_notify
         self._bus: MessageBus | None = None
         self._started = False
@@ -78,7 +82,9 @@ class NotificationListener:
         if not summary and not text:
             return False
 
-        notification = SystemNotification(app_name=app_name, summary=summary, body=text, expire_ms=expire_ms)
+        notification = SystemNotification(
+            app_name=app_name, summary=summary, body=text, expire_ms=expire_ms
+        )
         self._dispatch(notification)
         return False
 

@@ -3,9 +3,15 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from typing import Any
 
 from touchdeck.themes import DEFAULT_THEME_KEY, THEMES
-from touchdeck.quick_actions import DEFAULT_QUICK_ACTION_KEYS, filter_quick_action_keys
+from touchdeck.quick_actions import (
+    DEFAULT_CUSTOM_ACTION_TIMEOUT_MS,
+    DEFAULT_QUICK_ACTION_KEYS,
+    CustomQuickAction,
+    filter_quick_action_keys,
+)
 
 
 _CONFIG_PATH = Path.home() / ".config" / "touchdeck" / "settings.json"
@@ -22,11 +28,15 @@ class Settings:
     stats_poll_ms: int = 1000
     ui_opacity_percent: int = 90  # applied to window for a gentle dim effect
     theme: str = DEFAULT_THEME_KEY
-    quick_actions: list[str] = field(default_factory=lambda: list(DEFAULT_QUICK_ACTION_KEYS))
+    quick_actions: list[str] = field(
+        default_factory=lambda: list(DEFAULT_QUICK_ACTION_KEYS)
+    )
+    custom_actions: list[CustomQuickAction] = field(default_factory=list)
     preferred_display: str | None = None
     demo_mode: bool = False
     display_selected: bool = False
     enabled_pages: list[str] = field(default_factory=lambda: list(DEFAULT_PAGE_KEYS))
+    lyrics_cache: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
 
 
 def _coerce_bool(val, default: bool) -> bool:
@@ -49,10 +59,46 @@ def _coerce_theme(val: str) -> str:
     return DEFAULT_THEME_KEY
 
 
-def _coerce_quick_actions(val) -> list[str]:
+def _coerce_quick_actions(
+    val, custom_actions: list[CustomQuickAction] | None
+) -> list[str]:
     if isinstance(val, list):
-        return filter_quick_action_keys(val)
-    return filter_quick_action_keys(None)
+        return filter_quick_action_keys(val, custom_actions)
+    return filter_quick_action_keys(None, custom_actions)
+
+
+def _coerce_custom_actions(val) -> list[CustomQuickAction]:
+    if not isinstance(val, list):
+        return []
+    seen: set[str] = set()
+    actions: list[CustomQuickAction] = []
+    for entry in val:
+        if not isinstance(entry, dict):
+            continue
+        key = entry.get("key")
+        title = entry.get("title")
+        command = entry.get("command")
+        if not isinstance(key, str) or not key:
+            continue
+        if not isinstance(title, str) or not title:
+            continue
+        if not isinstance(command, str) or not command:
+            continue
+        if key in seen:
+            continue
+        timeout_ms = _coerce_int(
+            entry.get("timeout_ms"),
+            DEFAULT_CUSTOM_ACTION_TIMEOUT_MS,
+            500,
+            300_000,
+        )
+        actions.append(
+            CustomQuickAction(
+                key=key, title=title, command=command, timeout_ms=timeout_ms
+            )
+        )
+        seen.add(key)
+    return actions
 
 
 def _coerce_optional_str(val) -> str | None:
@@ -78,6 +124,29 @@ def _coerce_enabled_pages(val) -> list[str]:
     return ordered
 
 
+def _coerce_lyrics_cache(val: Any) -> dict[str, list[dict[str, Any]]]:
+    if not isinstance(val, dict):
+        return {}
+    cache: dict[str, list[dict[str, Any]]] = {}
+    for key, lines in val.items():
+        if not isinstance(key, str) or not isinstance(lines, list):
+            continue
+        entries: list[dict[str, Any]] = []
+        for entry in lines:
+            if not isinstance(entry, dict):
+                continue
+            at_ms = entry.get("at_ms")
+            text = entry.get("text")
+            if not isinstance(at_ms, int) or at_ms < 0:
+                continue
+            if not isinstance(text, str):
+                continue
+            entries.append({"at_ms": at_ms, "text": text})
+        if entries:
+            cache[key] = entries
+    return cache
+
+
 def load_settings() -> Settings:
     if not _CONFIG_PATH.exists():
         return Settings()
@@ -85,6 +154,8 @@ def load_settings() -> Settings:
         data = json.loads(_CONFIG_PATH.read_text())
     except Exception:
         return Settings()
+
+    custom_actions = _coerce_custom_actions(data.get("custom_actions"))
 
     return Settings(
         enable_gpu_stats=_coerce_bool(data.get("enable_gpu_stats"), True),
@@ -95,11 +166,13 @@ def load_settings() -> Settings:
         stats_poll_ms=_coerce_int(data.get("stats_poll_ms"), 1000, 500, 5000),
         ui_opacity_percent=_coerce_int(data.get("ui_opacity_percent"), 90, 50, 100),
         theme=_coerce_theme(data.get("theme")),
-        quick_actions=_coerce_quick_actions(data.get("quick_actions")),
+        quick_actions=_coerce_quick_actions(data.get("quick_actions"), custom_actions),
+        custom_actions=custom_actions,
         preferred_display=_coerce_optional_str(data.get("preferred_display")),
         demo_mode=_coerce_bool(data.get("demo_mode"), False),
         display_selected=_coerce_bool(data.get("display_selected"), False),
         enabled_pages=_coerce_enabled_pages(data.get("enabled_pages")),
+        lyrics_cache=_coerce_lyrics_cache(data.get("lyrics_cache")),
     )
 
 

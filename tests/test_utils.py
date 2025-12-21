@@ -27,4 +27,3 @@ def test_first_str_handles_variants_and_sequences() -> None:
     assert utils.first_str(["hello", "world"]) == "hello"
     assert utils.first_str(("a", "b")) == "a"
     assert utils.first_str(Variant("wrapped")) == "wrapped"
-
