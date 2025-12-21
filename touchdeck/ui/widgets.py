@@ -183,8 +183,7 @@ class MultiLineElideLabel(QLabel):
 
         fm = QFontMetrics(self.font())
         visible_lines = [
-            self._full[start : start + length]
-            for start, length in line_info[:-1]
+            self._full[start : start + length] for start, length in line_info[:-1]
         ]
         last_start, _last_len = line_info[-1]
         tail_text = self._full[last_start:]
@@ -734,6 +733,7 @@ class QuickActionsDrawer(QWidget):
         self._grabber.setStyleSheet(
             f"background: {self._theme.subtle}; border-radius: 3px;"
         )
+
 
 class QuickActionTile(QWidget):
     clicked = Signal()
