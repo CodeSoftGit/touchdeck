@@ -22,6 +22,8 @@ from PySide6.QtGui import (
     QPainterPath,
     QPen,
     QFontMetrics,
+    QTextLayout,
+    QTextOption,
     QLinearGradient,
     QRadialGradient,
     QIcon,
@@ -116,6 +118,78 @@ class ElideLabel(QLabel):
         w = max(0, self.width() - 2)
         elided = fm.elidedText(self._full, self._mode, w)
         super().setText(elided)
+
+
+class MultiLineElideLabel(QLabel):
+    """QLabel that wraps text and elides after a max line count."""
+
+    def __init__(
+        self,
+        text: str = "",
+        *,
+        max_lines: int = 3,
+        mode: Qt.TextElideMode = Qt.ElideRight,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__("", parent)
+        self._full = text or ""
+        self._max_lines = max(1, max_lines)
+        self._mode = mode
+        self.setWordWrap(True)
+        self.setText(text)
+
+    def setText(self, text: str) -> None:  # type: ignore[override]
+        self._full = text or ""
+        self._update_elide()
+
+    def fullText(self) -> str:
+        return self._full
+
+    def resizeEvent(self, ev) -> None:
+        super().resizeEvent(ev)
+        self._update_elide()
+
+    def _update_elide(self) -> None:
+        w = max(0, self.width() - 2)
+        if not self._full or w <= 0:
+            super().setText(self._full)
+            return
+
+        layout = QTextLayout(self._full, self.font())
+        option = QTextOption()
+        option.setWrapMode(QTextOption.WrapAtWordBoundaryOrAnywhere)
+        layout.setTextOption(option)
+
+        layout.beginLayout()
+        line_info: list[tuple[int, int]] = []
+        while True:
+            line = layout.createLine()
+            if not line.isValid():
+                break
+            line.setLineWidth(w)
+            line_info.append((line.textStart(), line.textLength()))
+            if len(line_info) >= self._max_lines:
+                break
+        layout.endLayout()
+
+        if not line_info:
+            super().setText("")
+            return
+
+        consumed = line_info[-1][0] + line_info[-1][1]
+        if consumed >= len(self._full):
+            super().setText(self._full)
+            return
+
+        fm = QFontMetrics(self.font())
+        visible_lines = [
+            self._full[start : start + length]
+            for start, length in line_info[:-1]
+        ]
+        last_start, _last_len = line_info[-1]
+        tail_text = self._full[last_start:]
+        visible_lines.append(fm.elidedText(tail_text, self._mode, w))
+        super().setText("\n".join(visible_lines))
 
 
 class DotIndicator(QWidget):

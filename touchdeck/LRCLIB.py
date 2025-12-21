@@ -13,6 +13,9 @@ from urllib.request import Request, urlopen
 _API_URL = "https://lrclib.net/api/get"
 _UA = "touchdeck-lyrics/0.1"
 _TS_RE = re.compile(r"\[(\d+):(\d{2})(?:\.(\d{1,3}))?\]")
+_FEAT_RE = re.compile(r"\s+(?:feat\.|ft\.|featuring)\s+.+$", re.IGNORECASE)
+_BRACKET_RE = re.compile(r"\s*[\(\[\{].*?[\)\]\}]\s*")
+_DASH_RE = re.compile(r"\s+-\s+.+$")
 
 
 @dataclass(slots=True)
@@ -40,6 +43,68 @@ class SyncedLyrics:
 
 class LyricsNotFoundError(Exception):
     """Raised when the lyrics API returns 404/not found."""
+
+
+def _clean_title(text: str) -> str:
+    text = _BRACKET_RE.sub(" ", text)
+    text = _DASH_RE.sub("", text)
+    return " ".join(text.split()).strip()
+
+
+def _clean_artist(text: str) -> str:
+    text = _FEAT_RE.sub("", text)
+    return " ".join(text.split()).strip()
+
+
+def _primary_artist(text: str) -> str:
+    text = text.strip()
+    if not text:
+        return ""
+    parts = re.split(r"\s*(?:,|&|/|;|\+)\s*", text, maxsplit=1)
+    return parts[0].strip()
+
+
+def _build_query_candidates(
+    track_name: str, artist_name: str, album_name: str, duration_ms: int
+) -> list[dict[str, Any]]:
+    duration_s = max(1, int(round(duration_ms / 1000)))
+    track_raw = track_name.strip()
+    artist_raw = artist_name.strip()
+    album_raw = album_name.strip() if album_name else ""
+
+    track_clean = _clean_title(track_raw)
+    artist_clean = _clean_artist(artist_raw)
+    artist_primary = _primary_artist(artist_clean or artist_raw)
+    album_clean = _clean_title(album_raw) if album_raw else ""
+
+    combos = [
+        (track_raw, artist_raw, album_raw),
+        (track_raw, artist_raw, ""),
+        (track_clean, artist_clean, album_raw),
+        (track_clean, artist_clean, ""),
+        (track_clean, artist_primary, ""),
+        (track_raw, artist_primary, ""),
+        (track_clean, artist_clean, album_clean),
+    ]
+
+    queries: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str, int]] = set()
+    for track, artist, album in combos:
+        if not track or not artist:
+            continue
+        key = (track, artist, album, duration_s)
+        if key in seen:
+            continue
+        seen.add(key)
+        queries.append(
+            {
+                "artist_name": artist,
+                "track_name": track,
+                "album_name": album,
+                "duration": duration_s,
+            }
+        )
+    return queries
 
 
 def _parse_synced_lyrics(lrc_text: str) -> SyncedLyrics | None:
@@ -70,14 +135,26 @@ class LrclibClient:
     ) -> SyncedLyrics | None:
         if not track_name or not artist_name or duration_ms <= 0:
             return None
-        duration_s = max(1, int(round(duration_ms / 1000)))
-        query = {
-            "artist_name": artist_name,
-            "track_name": track_name,
-            "album_name": album_name or "",
-            "duration": duration_s,
-        }
-        return await asyncio.to_thread(self._request, query)
+        queries = _build_query_candidates(
+            track_name=track_name,
+            artist_name=artist_name,
+            album_name=album_name or "",
+            duration_ms=duration_ms,
+        )
+        saw_not_found = False
+        saw_other_failure = False
+        for query in queries:
+            try:
+                lyrics = await asyncio.to_thread(self._request, query)
+            except LyricsNotFoundError:
+                saw_not_found = True
+                continue
+            if lyrics is not None:
+                return lyrics
+            saw_other_failure = True
+        if saw_not_found and not saw_other_failure:
+            raise LyricsNotFoundError
+        return None
 
     def _request(self, query: dict[str, Any]) -> SyncedLyrics | None:
         try:

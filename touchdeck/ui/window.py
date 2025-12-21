@@ -14,6 +14,7 @@ from PySide6.QtCore import (
     QTimer,
     QObject,
     QPointF,
+    QPoint,
     Slot,
     QProcess,
     QThread,
@@ -25,6 +26,7 @@ from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QStackedWidget,
+    QStackedLayout,
     QAbstractSlider,
 )
 
@@ -312,6 +314,9 @@ class DeckWindow(QWidget):
         self._speedtest = SpeedtestService()
 
         self.stack = QStackedWidget()
+        self._stack_layout = self.stack.layout()
+        if isinstance(self._stack_layout, QStackedLayout):
+            self._stack_layout.setStackingMode(QStackedLayout.StackAll)
         self.page_music = MusicPage(self._theme)
         self.page_stats = StatsPage(self.settings, theme=self._theme)
         self.page_clock = ClockPage(self.settings, theme=self._theme)
@@ -421,17 +426,32 @@ class DeckWindow(QWidget):
 
     # Public for SwipeNavigator
     def next_page(self) -> None:
-        idx = (self.stack.currentIndex() + 1) % self.stack.count()
-        self._set_page(idx)
+        self._animate_page(1)
 
     def prev_page(self) -> None:
-        idx = (self.stack.currentIndex() - 1) % self.stack.count()
-        self._set_page(idx)
+        self._animate_page(-1)
 
     def _set_page(self, idx: int) -> None:
         self.stack.setCurrentIndex(idx)
+        self._sync_stack_visibility(idx)
         if hasattr(self, "dots"):
             self.dots.set_index(idx)
+
+    def _sync_stack_visibility(self, idx: int) -> None:
+        for i in range(self.stack.count()):
+            widget = self.stack.widget(i)
+            if widget is not None:
+                widget.setVisible(i == idx)
+
+    def _animate_page(self, direction: int) -> None:
+        if self.stack.count() <= 1:
+            return
+
+        current_idx = self.stack.currentIndex()
+        target_idx = (current_idx + direction) % self.stack.count()
+        if target_idx == current_idx:
+            return
+        self._set_page(target_idx)
 
     def resizeEvent(self, event) -> None:  # noqa: N802
         super().resizeEvent(event)
