@@ -661,6 +661,7 @@ class QuickActionsDrawer(QWidget):
             f"background: {self._theme.subtle}; border-radius: 3px;"
         )
 
+
 class QuickActionTile(QWidget):
     clicked = Signal()
     long_pressed = Signal()

@@ -1506,9 +1506,7 @@ class SettingsPage(QWidget):
         lay.addStretch(1)
         return section
 
-    def _build_pages_actions_section(
-        self, page_grid: QGridLayout
-    ) -> QWidget:
+    def _build_pages_actions_section(self, page_grid: QGridLayout) -> QWidget:
         section = QWidget()
         lay = QVBoxLayout(section)
         lay.setContentsMargins(0, 0, 0, 0)
