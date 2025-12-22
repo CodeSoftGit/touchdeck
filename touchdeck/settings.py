@@ -24,7 +24,14 @@ DEFAULT_PAGE_KEYS = [
     "developer",
     "settings",
 ]
-DEFAULT_ENABLED_PAGE_KEYS = ["music", "stats", "clock", "emoji", "speedtest", "settings"]
+DEFAULT_ENABLED_PAGE_KEYS = [
+    "music",
+    "stats",
+    "clock",
+    "emoji",
+    "speedtest",
+    "settings",
+]
 
 
 @dataclass(slots=True)

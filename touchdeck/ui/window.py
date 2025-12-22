@@ -844,8 +844,12 @@ class DeckWindow(QWidget):
         worker = _CommandWorker(command, action.timeout_ms, cancel_event)
         thread = QThread(self)
         worker.moveToThread(thread)
-        worker.output.connect(lambda line, key=action.key: self._on_action_output(key, line))
-        worker.error.connect(lambda msg, key=action.key: self._on_action_error(key, msg))
+        worker.output.connect(
+            lambda line, key=action.key: self._on_action_output(key, line)
+        )
+        worker.error.connect(
+            lambda msg, key=action.key: self._on_action_error(key, msg)
+        )
         worker.finished.connect(
             lambda code, timed_out, canceled, key=action.key: self._on_action_finished(
                 key, code, timed_out, canceled

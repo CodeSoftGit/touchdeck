@@ -930,9 +930,7 @@ class SettingsPage(QWidget):
             row.timeout_input.setValue(timeout_s)
         row.timeout_input.blockSignals(False)
 
-    def _refresh_quick_action_labels(
-        self, actions: list[CustomQuickAction]
-    ) -> None:
+    def _refresh_quick_action_labels(self, actions: list[CustomQuickAction]) -> None:
         if not self.quick_action_checks:
             return
         lookup = {action.key: action for action in actions}
