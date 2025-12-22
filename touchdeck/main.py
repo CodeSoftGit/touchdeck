@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import sys
 from pathlib import Path
 
@@ -25,6 +26,9 @@ def _load_full_logo_icon() -> QIcon:
 
 
 def main() -> None:
+    settings = load_settings()
+    scale_factor = settings.ui_scale_percent / 100
+    os.environ["QT_SCALE_FACTOR"] = f"{scale_factor:.2f}".rstrip("0").rstrip(".")
     app = QApplication(sys.argv)
     app.setAttribute(Qt.AA_SynthesizeTouchForUnhandledMouseEvents, True)
     app_icon = _load_app_icon()
@@ -32,7 +36,6 @@ def main() -> None:
     if not app_icon.isNull():
         app.setWindowIcon(app_icon)
 
-    settings = load_settings()
     theme = get_theme(settings.theme)
     app.setStyleSheet(build_qss(theme))
 

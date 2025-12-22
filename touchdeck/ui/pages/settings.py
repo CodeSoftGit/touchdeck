@@ -45,6 +45,7 @@ PAGE_LABELS = {
     "clock": "Clock",
     "emoji": "Emoji",
     "speedtest": "Speed test",
+    "developer": "Developer",
     "settings": "Settings",
 }
 
@@ -651,6 +652,8 @@ class SettingsPage(QWidget):
         on_change,
         on_exit,
         on_reset,
+        on_clear_cache,
+        on_restart,
         parent: QWidget | None = None,
         theme: Theme | None = None,
     ) -> None:
@@ -658,6 +661,8 @@ class SettingsPage(QWidget):
         self._on_change = on_change
         self._on_exit = on_exit
         self._on_reset = on_reset
+        self._on_clear_cache = on_clear_cache
+        self._on_restart = on_restart
         self._settings = settings
         self._theme = theme or get_theme(settings.theme)
         self._syncing = True  # suppress change events until initial wiring completes
@@ -743,6 +748,23 @@ class SettingsPage(QWidget):
         self.brightness.setRange(0, 100)
         self.brightness.valueChanged.connect(self._on_brightness_change)
 
+        # Scale control
+        scale_row = QHBoxLayout()
+        scale_row.setContentsMargins(0, 0, 0, 0)
+        scale_row.addWidget(QLabel("Scale"), 1)
+        self.ui_scale_value = QLabel("100%")
+        self.ui_scale_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.ui_scale_value.setObjectName("Subtle")
+        scale_row.addWidget(self.ui_scale_value, 0)
+
+        self.ui_scale = QSlider(Qt.Horizontal)
+        self.ui_scale.setRange(25, 200)
+        self.ui_scale.valueChanged.connect(self._on_scale_change)
+
+        self.ui_scale_note = QLabel("Restart TouchDeck to apply scale changes.")
+        self.ui_scale_note.setObjectName("Subtle")
+        self.ui_scale_note.setWordWrap(True)
+
         # Poll intervals
         self.music_poll_value = QLabel("0 ms")
         self.music_poll_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -781,7 +803,10 @@ class SettingsPage(QWidget):
                 "Pages & Actions",
                 self._build_pages_actions_section(page_grid),
             ),
-            ("Display", self._build_display_section(theme_row, bright_row)),
+            (
+                "Display",
+                self._build_display_section(theme_row, bright_row, scale_row),
+            ),
             ("Refresh", self._build_refresh_section(music_row, stats_row)),
         ]
 
@@ -803,10 +828,18 @@ class SettingsPage(QWidget):
         self.exit_btn = QPushButton("Exit TouchDeck")
         self.exit_btn.clicked.connect(self._on_exit_clicked)
         self._style_exit_button(self.exit_btn)
+        self.restart_btn = QPushButton("Restart TouchDeck")
+        self.restart_btn.clicked.connect(self._on_restart_clicked)
+        self._style_restart_button(self.restart_btn)
+        self.clear_cache_btn = QPushButton("Clear Cache")
+        self.clear_cache_btn.clicked.connect(self._on_clear_cache_clicked)
+        self._style_clear_cache_button(self.clear_cache_btn)
         self.reset_btn = QPushButton("Reset app data and restart")
         self.reset_btn.clicked.connect(self._on_reset_clicked)
         self._style_reset_button(self.reset_btn)
         self.card.body.addWidget(self.exit_btn)
+        self.card.body.addWidget(self.restart_btn)
+        self.card.body.addWidget(self.clear_cache_btn)
         self.card.body.addWidget(self.reset_btn)
 
         content = QWidget()
@@ -840,6 +873,9 @@ class SettingsPage(QWidget):
         self.brightness.blockSignals(True)
         self.brightness.setValue(settings.ui_opacity_percent)
         self.brightness.blockSignals(False)
+        self.ui_scale.blockSignals(True)
+        self.ui_scale.setValue(settings.ui_scale_percent)
+        self.ui_scale.blockSignals(False)
         self._apply_custom_actions(settings.custom_actions)
         selected_actions = set(settings.quick_actions)
         for key, cb in self.quick_action_checks:
@@ -847,6 +883,7 @@ class SettingsPage(QWidget):
             cb.setChecked(key in selected_actions)
             cb.blockSignals(False)
         self._on_brightness_change(settings.ui_opacity_percent)
+        self._on_scale_change(settings.ui_scale_percent)
         self.music_poll.blockSignals(True)
         self.music_poll.setValue(settings.music_poll_ms)
         self.music_poll.blockSignals(False)
@@ -911,6 +948,10 @@ class SettingsPage(QWidget):
         self.brightness_value.setText(f"{value}%")
         self._emit_change()
 
+    def _on_scale_change(self, value: int) -> None:
+        self.ui_scale_value.setText(f"{value}%")
+        self._emit_change()
+
     def _emit_change(self, *_args) -> None:
         if self._syncing:
             return
@@ -921,6 +962,7 @@ class SettingsPage(QWidget):
             music_poll_ms=self.music_poll.value(),
             stats_poll_ms=self.stats_poll.value(),
             ui_opacity_percent=self.brightness.value(),
+            ui_scale_percent=self.ui_scale.value(),
             theme=self.theme_picker.currentData() or DEFAULT_THEME_KEY,
             quick_actions=self._selected_quick_actions(),
             preferred_display=self._settings.preferred_display,
@@ -968,6 +1010,8 @@ class SettingsPage(QWidget):
             row.apply_theme(theme)
         self._style_add_custom_action_button()
         self._style_exit_button(self.exit_btn)
+        self._style_restart_button(self.restart_btn)
+        self._style_clear_cache_button(self.clear_cache_btn)
         self._style_reset_button(self.reset_btn)
 
     def _style_sliders(self) -> None:
@@ -985,7 +1029,7 @@ class SettingsPage(QWidget):
                 background: {self._theme.slider_handle};
             }}
         """
-        for sl in (self.brightness, self.music_poll, self.stats_poll):
+        for sl in (self.brightness, self.ui_scale, self.music_poll, self.stats_poll):
             sl.setStyleSheet(slider_style)
 
     def _style_theme_picker(self) -> None:
@@ -1101,6 +1145,12 @@ class SettingsPage(QWidget):
             """
         )
 
+    def _style_restart_button(self, btn: QPushButton) -> None:
+        self._style_exit_button(btn)
+
+    def _style_clear_cache_button(self, btn: QPushButton) -> None:
+        self._style_reset_button(btn)
+
     def _style_reset_button(self, btn: QPushButton) -> None:
         btn.setCursor(Qt.PointingHandCursor)
         btn.setStyleSheet(
@@ -1146,6 +1196,14 @@ class SettingsPage(QWidget):
     def _on_reset_clicked(self) -> None:
         if callable(self._on_reset):
             self._on_reset()
+
+    def _on_clear_cache_clicked(self) -> None:
+        if callable(self._on_clear_cache):
+            self._on_clear_cache()
+
+    def _on_restart_clicked(self) -> None:
+        if callable(self._on_restart):
+            self._on_restart()
 
     def _on_nav_clicked(self, idx: int) -> None:
         self._set_section(idx)
@@ -1282,7 +1340,10 @@ class SettingsPage(QWidget):
         self._emit_change()
 
     def _build_display_section(
-        self, theme_row: QHBoxLayout, bright_row: QHBoxLayout
+        self,
+        theme_row: QHBoxLayout,
+        bright_row: QHBoxLayout,
+        scale_row: QHBoxLayout,
     ) -> QWidget:
         section = QWidget()
         lay = QVBoxLayout(section)
@@ -1294,6 +1355,11 @@ class SettingsPage(QWidget):
         lay.addWidget(self._section_title("Brightness"))
         lay.addLayout(bright_row)
         lay.addWidget(self.brightness)
+        lay.addSpacing(4)
+        lay.addWidget(self._section_title("Scale"))
+        lay.addLayout(scale_row)
+        lay.addWidget(self.ui_scale)
+        lay.addWidget(self.ui_scale_note)
         lay.addStretch(1)
         return section
 

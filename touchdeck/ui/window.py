@@ -5,6 +5,7 @@ import select
 import subprocess
 import threading
 from dataclasses import dataclass, replace
+from datetime import datetime
 import sys
 from time import monotonic
 
@@ -35,6 +36,7 @@ from touchdeck.ui.pages import (
     MusicPage,
     StatsPage,
     ClockPage,
+    DeveloperPage,
     SettingsPage,
     SpeedtestPage,
     EmojiPage,
@@ -324,11 +326,15 @@ class DeckWindow(QWidget):
         self.page_speedtest = SpeedtestPage(
             self._on_speedtest_requested, theme=self._theme
         )
+        self.page_developer = DeveloperPage(self.settings, theme=self._theme)
+        self._dev_events: list[dict[str, str]] = []
         self.page_settings = SettingsPage(
             self.settings,
             self._on_settings_changed,
             self._on_exit_requested,
             self._on_reset_requested,
+            self._on_clear_cache_requested,
+            self._on_restart_requested,
             theme=self._theme,
         )
 
@@ -338,8 +344,10 @@ class DeckWindow(QWidget):
             "clock": self.page_clock,
             "emoji": self.page_emoji,
             "speedtest": self.page_speedtest,
+            "developer": self.page_developer,
             "settings": self.page_settings,
         }
+        self.page_developer.set_events(self._dev_events)
         self._enabled_pages: list[str] = []
         self._rebuild_stack()
 
@@ -396,6 +404,7 @@ class DeckWindow(QWidget):
         self.page_clock.installEventFilter(self._swipe)
         self.page_emoji.installEventFilter(self._swipe)
         self.page_speedtest.installEventFilter(self._swipe)
+        self.page_developer.installEventFilter(self._swipe)
         self.page_settings.installEventFilter(self._swipe)
         self.dots.installEventFilter(self._swipe)
         self.drawer.installEventFilter(self._swipe)
@@ -509,6 +518,7 @@ class DeckWindow(QWidget):
         # keep the value in settings for future use.
         self.page_stats.apply_settings(self.settings)
         self.page_clock.apply_settings(self.settings)
+        self.page_developer.apply_settings(self.settings)
         self.page_settings.apply_settings(self.settings)
         self._custom_actions = {a.key: a for a in self.settings.custom_actions}
         self._quick_action_options = quick_action_lookup(self.settings.custom_actions)
@@ -537,6 +547,7 @@ class DeckWindow(QWidget):
         self.page_clock.apply_theme(theme)
         self.page_emoji.apply_theme(theme)
         self.page_speedtest.apply_theme(theme)
+        self.page_developer.apply_theme(theme)
         self.page_settings.apply_theme(theme)
         self.dots.apply_theme(theme)
         self.drawer.apply_theme(theme)
@@ -545,6 +556,19 @@ class DeckWindow(QWidget):
         self.startup.apply_theme(theme)
         # Keep window border radius styling intact
         self.setStyleSheet(f"border-radius: {CORNER_RADIUS}px;")
+
+    def _log_event(self, level: str, source: str, message: str) -> None:
+        clean = " ".join((message or "").splitlines()).strip()
+        entry = {
+            "time": datetime.now().strftime("%H:%M:%S"),
+            "level": level.upper(),
+            "source": source,
+            "message": clean or "-",
+        }
+        self._dev_events.append(entry)
+        if len(self._dev_events) > 50:
+            self._dev_events = self._dev_events[-50:]
+        self.page_developer.set_events(self._dev_events)
 
     def _apply_display_preference(self) -> None:
         app = QApplication.instance()
@@ -756,6 +780,16 @@ class DeckWindow(QWidget):
             QProcess.startDetached(sys.executable or "python", ["-m", "touchdeck"])
             app.quit()
 
+    def _on_clear_cache_requested(self) -> None:
+        self.settings = replace(self.settings, lyrics_cache={})
+        save_settings(self.settings)
+
+    def _on_restart_requested(self) -> None:
+        app = QApplication.instance()
+        if app is not None:
+            QProcess.startDetached(sys.executable or "python", ["-m", "touchdeck"])
+            app.quit()
+
     def _on_speedtest_requested(self) -> None:
         self.page_speedtest.set_running(True)
         asyncio.create_task(self._run_speedtest())
@@ -765,6 +799,7 @@ class DeckWindow(QWidget):
             result = await self._speedtest.run()
         except Exception as exc:
             self.page_speedtest.show_error(str(exc))
+            self._log_event("ERROR", "speedtest", str(exc))
             return
         self.page_speedtest.show_result(result)
 
@@ -854,6 +889,7 @@ class DeckWindow(QWidget):
         if clean:
             running.last_line = clean
             self.drawer.update_action_detail(key, clean)
+            self._log_event("ERROR", f"quick_action:{key}", clean)
 
     def _on_action_finished(
         self, key: str, exit_code: int, timed_out: bool, canceled: bool
@@ -866,15 +902,19 @@ class DeckWindow(QWidget):
         if timed_out:
             self.drawer.update_action_detail(key, "Timed out")
             self._show_quick_action_toast(f"{title} timed out", detail)
+            self._log_event("WARN", f"quick_action:{key}", "Timed out")
             return
         if canceled:
             self.drawer.update_action_detail(key, "Canceled")
             self._show_quick_action_toast(f"{title} canceled", detail)
+            self._log_event("WARN", f"quick_action:{key}", "Canceled")
             return
         if exit_code == 0:
             self._show_quick_action_toast(f"{title} succeeded", detail)
         else:
             self._show_quick_action_toast(f"{title} failed", detail)
+            msg = detail or f"Exit code {exit_code}"
+            self._log_event("ERROR", f"quick_action:{key}", msg)
 
     def _show_quick_action_toast(self, summary: str, body: str) -> None:
         self.notification_stack.show_notification(

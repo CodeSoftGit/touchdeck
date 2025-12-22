@@ -15,7 +15,16 @@ from touchdeck.quick_actions import (
 
 
 _CONFIG_PATH = Path.home() / ".config" / "touchdeck" / "settings.json"
-DEFAULT_PAGE_KEYS = ["music", "stats", "clock", "emoji", "speedtest", "settings"]
+DEFAULT_PAGE_KEYS = [
+    "music",
+    "stats",
+    "clock",
+    "emoji",
+    "speedtest",
+    "developer",
+    "settings",
+]
+DEFAULT_ENABLED_PAGE_KEYS = ["music", "stats", "clock", "emoji", "speedtest", "settings"]
 
 
 @dataclass(slots=True)
@@ -27,6 +36,7 @@ class Settings:
     music_poll_ms: int = 500
     stats_poll_ms: int = 1000
     ui_opacity_percent: int = 90  # applied to window for a gentle dim effect
+    ui_scale_percent: int = 100
     theme: str = DEFAULT_THEME_KEY
     quick_actions: list[str] = field(
         default_factory=lambda: list(DEFAULT_QUICK_ACTION_KEYS)
@@ -35,7 +45,9 @@ class Settings:
     preferred_display: str | None = None
     demo_mode: bool = False
     display_selected: bool = False
-    enabled_pages: list[str] = field(default_factory=lambda: list(DEFAULT_PAGE_KEYS))
+    enabled_pages: list[str] = field(
+        default_factory=lambda: list(DEFAULT_ENABLED_PAGE_KEYS)
+    )
     lyrics_cache: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
 
 
@@ -113,7 +125,7 @@ def _coerce_enabled_pages(val) -> list[str]:
     else:
         pages = []
     if not pages:
-        pages = list(DEFAULT_PAGE_KEYS)
+        pages = list(DEFAULT_ENABLED_PAGE_KEYS)
     if "settings" not in pages:
         pages.append("settings")
     # preserve default ordering
@@ -165,6 +177,7 @@ def load_settings() -> Settings:
         music_poll_ms=_coerce_int(data.get("music_poll_ms"), 500, 250, 3000),
         stats_poll_ms=_coerce_int(data.get("stats_poll_ms"), 1000, 500, 5000),
         ui_opacity_percent=_coerce_int(data.get("ui_opacity_percent"), 90, 50, 100),
+        ui_scale_percent=_coerce_int(data.get("ui_scale_percent"), 100, 25, 200),
         theme=_coerce_theme(data.get("theme")),
         quick_actions=_coerce_quick_actions(data.get("quick_actions"), custom_actions),
         custom_actions=custom_actions,
