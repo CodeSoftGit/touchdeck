@@ -4,6 +4,7 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Static Badge](https://img.shields.io/badge/Python-Python?style=flat&logo=Python&logoColor=white&labelColor=gray)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/CodeSoftGit/touchdeck)
 
 Touch-friendly “Stream Deck-like” UI for small landscape displays, focused on quick music controls and system stats.
 
