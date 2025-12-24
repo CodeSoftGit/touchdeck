@@ -232,9 +232,7 @@ class SwipeNavigator(QObject):
                 return True
             # also ignore if user starts on a button (tap should click)
             if w.metaObject().className() in ("QPushButton", "QToolButton"):
-                if hasattr(self.host, "drawer") and getattr(
-                    self.host, "drawer"
-                ).isAncestorOf(w):
+                if hasattr(self.host, "drawer") and self.host.drawer.isAncestorOf(w):
                     return False
                 return True
             w = w.parentWidget()
