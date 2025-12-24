@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from touchdeck.media import MediaDevice
 from touchdeck.settings import Settings, DEFAULT_PAGE_KEYS
 from touchdeck.quick_actions import (
     DEFAULT_CUSTOM_ACTION_TIMEOUT_MS,
@@ -654,6 +655,9 @@ class SettingsPage(QWidget):
         on_reset,
         on_clear_cache,
         on_restart,
+        on_spotify_sign_in=None,
+        on_spotify_refresh_devices=None,
+        on_spotify_transfer=None,
         parent: QWidget | None = None,
         theme: Theme | None = None,
     ) -> None:
@@ -663,6 +667,9 @@ class SettingsPage(QWidget):
         self._on_reset = on_reset
         self._on_clear_cache = on_clear_cache
         self._on_restart = on_restart
+        self._on_spotify_sign_in = on_spotify_sign_in
+        self._on_spotify_refresh_devices = on_spotify_refresh_devices
+        self._on_spotify_transfer = on_spotify_transfer
         self._settings = settings
         self._theme = theme or get_theme(settings.theme)
         self._syncing = True  # suppress change events until initial wiring completes
@@ -696,6 +703,47 @@ class SettingsPage(QWidget):
             on_change=self._emit_change,
             theme=self._theme,
         )
+
+        # Media provider + Spotify controls
+        self.media_source = QComboBox()
+        self.media_source.addItem("MPRIS", "mpris")
+        self.media_source.addItem("Spotify", "spotify")
+        self.media_source.currentIndexChanged.connect(self._emit_change)
+
+        self.spotify_client_id = QLineEdit(settings.spotify_client_id)
+        self.spotify_client_id.setPlaceholderText("Spotify client ID")
+        self.spotify_client_id.textChanged.connect(self._emit_change)
+
+        self.spotify_client_secret = QLineEdit(settings.spotify_client_secret)
+        self.spotify_client_secret.setEchoMode(QLineEdit.Password)
+        self.spotify_client_secret.setPlaceholderText("Spotify client secret")
+        self.spotify_client_secret.textChanged.connect(self._emit_change)
+
+        self.spotify_redirect_port = QSpinBox()
+        self.spotify_redirect_port.setRange(1024, 65535)
+        self.spotify_redirect_port.setValue(settings.spotify_redirect_port)
+        self.spotify_redirect_port.valueChanged.connect(self._emit_change)
+
+        self.spotify_sign_in_btn = QPushButton("Sign in to Spotify")
+        self.spotify_sign_in_btn.setCursor(Qt.PointingHandCursor)
+        self.spotify_sign_in_btn.clicked.connect(self._on_spotify_sign_in_clicked)
+
+        self.spotify_refresh_devices_btn = QPushButton("Refresh devices")
+        self.spotify_refresh_devices_btn.setCursor(Qt.PointingHandCursor)
+        self.spotify_refresh_devices_btn.clicked.connect(self._on_spotify_refresh_devices_clicked)
+
+        self.spotify_devices = QComboBox()
+        self.spotify_devices.addItem("Use active device", None)
+        self.spotify_devices.currentIndexChanged.connect(self._emit_change)
+
+        self.spotify_transfer_btn = QPushButton("Transfer to selected device")
+        self.spotify_transfer_btn.setCursor(Qt.PointingHandCursor)
+        self.spotify_transfer_btn.clicked.connect(self._on_spotify_transfer_clicked)
+
+        self.spotify_status = QLabel("")
+        self.spotify_status.setObjectName("Subtle")
+        self.spotify_status.setWordWrap(True)
+        self._spotify_devices: list[MediaDevice] = []
 
         # Page selector
         self.page_checks: list[tuple[str, QCheckBox]] = []
@@ -799,6 +847,7 @@ class SettingsPage(QWidget):
 
         sections = [
             ("General", self._build_general_section()),
+            ("Media", self._build_media_section()),
             (
                 "Pages & Actions",
                 self._build_pages_actions_section(page_grid),
@@ -864,6 +913,17 @@ class SettingsPage(QWidget):
         self.toggle_clock.set_checked(settings.clock_24h)
         self.toggle_seconds.set_checked(settings.show_clock_seconds)
         self.toggle_demo.set_checked(settings.demo_mode)
+        self._set_media_source(settings.media_source)
+        self.spotify_client_id.blockSignals(True)
+        self.spotify_client_id.setText(settings.spotify_client_id)
+        self.spotify_client_id.blockSignals(False)
+        self.spotify_client_secret.blockSignals(True)
+        self.spotify_client_secret.setText(settings.spotify_client_secret)
+        self.spotify_client_secret.blockSignals(False)
+        self.spotify_redirect_port.blockSignals(True)
+        self.spotify_redirect_port.setValue(settings.spotify_redirect_port)
+        self.spotify_redirect_port.blockSignals(False)
+        self._select_spotify_device(settings.spotify_device_id)
         selected_pages = set(settings.enabled_pages)
         for key, cb in self.page_checks:
             cb.blockSignals(True)
@@ -956,6 +1016,11 @@ class SettingsPage(QWidget):
         if self._syncing:
             return
         new_settings = Settings(
+            media_source=self.media_source.currentData() or "mpris",
+            spotify_client_id=self.spotify_client_id.text().strip(),
+            spotify_client_secret=self.spotify_client_secret.text().strip(),
+            spotify_redirect_port=self.spotify_redirect_port.value(),
+            spotify_device_id=self._selected_spotify_device(),
             enable_gpu_stats=self.toggle_gpu.is_checked(),
             clock_24h=self.toggle_clock.is_checked(),
             show_clock_seconds=self.toggle_seconds.is_checked(),
@@ -1001,6 +1066,7 @@ class SettingsPage(QWidget):
         self.toggle_demo.apply_theme(theme)
         self._style_sliders()
         self._style_theme_picker()
+        self._style_media_controls()
         self._style_nav_buttons()
         for _, cb in self.quick_action_checks:
             self._style_checkbox(cb)
@@ -1054,9 +1120,110 @@ class SettingsPage(QWidget):
             """
         )
 
+    def _style_media_controls(self) -> None:
+        combo_style = f"""
+            QComboBox {{
+                font-size: 16px;
+                padding: 10px 12px;
+                border-radius: 12px;
+                background: {self._theme.neutral};
+                color: {self._theme.text};
+            }}
+            QComboBox::drop-down {{ width: 26px; }}
+            QComboBox QAbstractItemView {{
+                background: {self._theme.panel};
+                color: {self._theme.text};
+                selection-background-color: {self._theme.accent};
+                selection-color: {self._theme.background};
+            }}
+        """
+        line_style = f"""
+            QLineEdit {{
+                font-size: 16px;
+                padding: 10px 12px;
+                border-radius: 12px;
+                background: {self._theme.neutral};
+                color: {self._theme.text};
+                border: 1px solid {self._theme.neutral_hover};
+            }}
+            QLineEdit:focus {{ border: 1px solid {self._theme.accent}; }}
+        """
+        spin_style = f"""
+            QSpinBox {{
+                font-size: 16px;
+                padding: 8px 12px;
+                border-radius: 10px;
+                background: {self._theme.neutral};
+                color: {self._theme.text};
+                border: 1px solid {self._theme.neutral_hover};
+            }}
+            QSpinBox::up-button, QSpinBox::down-button {{ width: 0px; border: none; }}
+        """
+        btn_style = f"""
+            QPushButton {{
+                padding: 10px 12px;
+                border-radius: 12px;
+                background: {self._theme.neutral};
+                color: {self._theme.text};
+                font-size: 16px;
+                font-weight: 650;
+            }}
+            QPushButton:pressed {{ background: {self._theme.neutral_pressed}; }}
+        """
+
+        self.media_source.setStyleSheet(combo_style)
+        self.spotify_devices.setStyleSheet(combo_style)
+        for edit in (self.spotify_client_id, self.spotify_client_secret):
+            edit.setStyleSheet(line_style)
+        self.spotify_redirect_port.setStyleSheet(spin_style)
+        for btn in (
+            self.spotify_sign_in_btn,
+            self.spotify_refresh_devices_btn,
+            self.spotify_transfer_btn,
+        ):
+            btn.setStyleSheet(btn_style)
+
     def _selected_quick_actions(self) -> list[str]:
         chosen = [key for key, cb in self.quick_action_checks if cb.isChecked()]
         return filter_quick_action_keys(chosen, self._collect_custom_actions())
+
+    def _set_media_source(self, key: str) -> None:
+        idx = self.media_source.findData(key)
+        if idx < 0:
+            idx = self.media_source.findData("mpris")
+        if idx >= 0:
+            self.media_source.blockSignals(True)
+            self.media_source.setCurrentIndex(idx)
+            self.media_source.blockSignals(False)
+
+    def _selected_spotify_device(self) -> str | None:
+        data = self.spotify_devices.currentData()
+        return data if isinstance(data, str) else None
+
+    def _select_spotify_device(self, device_id: str | None) -> None:
+        target = device_id or None
+        for idx in range(self.spotify_devices.count()):
+            if self.spotify_devices.itemData(idx) == target:
+                self.spotify_devices.setCurrentIndex(idx)
+                return
+
+    def set_spotify_devices(self, devices: list[MediaDevice], selected_id: str | None) -> None:
+        self._spotify_devices = list(devices)
+        self.spotify_devices.blockSignals(True)
+        self.spotify_devices.clear()
+        self.spotify_devices.addItem("Use active device", None)
+        for dev in devices:
+            label = dev.name
+            if dev.type:
+                label = f"{label} ({dev.type})"
+            if dev.is_active:
+                label = f"{label} · Active"
+            self.spotify_devices.addItem(label, dev.id)
+        self._select_spotify_device(selected_id)
+        self.spotify_devices.blockSignals(False)
+
+    def set_spotify_status(self, text: str) -> None:
+        self.spotify_status.setText(text or "")
 
     def _collect_custom_actions(self) -> list[CustomQuickAction]:
         actions: list[CustomQuickAction] = []
@@ -1193,6 +1360,18 @@ class SettingsPage(QWidget):
         if callable(self._on_exit):
             self._on_exit()
 
+    def _on_spotify_sign_in_clicked(self) -> None:
+        if callable(self._on_spotify_sign_in):
+            self._on_spotify_sign_in()
+
+    def _on_spotify_refresh_devices_clicked(self) -> None:
+        if callable(self._on_spotify_refresh_devices):
+            self._on_spotify_refresh_devices()
+
+    def _on_spotify_transfer_clicked(self) -> None:
+        if callable(self._on_spotify_transfer):
+            self._on_spotify_transfer(self._selected_spotify_device())
+
     def _on_reset_clicked(self) -> None:
         if callable(self._on_reset):
             self._on_reset()
@@ -1222,6 +1401,39 @@ class SettingsPage(QWidget):
         lbl.setObjectName("Subtle")
         lbl.setStyleSheet("font-size: 16px; font-weight: 650; padding-top: 4px;")
         return lbl
+
+    def _build_media_section(self) -> QWidget:
+        section = QWidget()
+        lay = QVBoxLayout(section)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(10)
+
+        lay.addWidget(self._section_title("Media source"))
+        lay.addWidget(self.media_source)
+
+        lay.addWidget(self._section_title("Spotify auth"))
+        lay.addWidget(self.spotify_client_id)
+        lay.addWidget(self.spotify_client_secret)
+
+        port_row = QHBoxLayout()
+        port_row.setContentsMargins(0, 0, 0, 0)
+        port_row.addWidget(QLabel("Redirect port"), 1)
+        port_row.addWidget(self.spotify_redirect_port, 0)
+        lay.addLayout(port_row)
+
+        buttons_row = QHBoxLayout()
+        buttons_row.setContentsMargins(0, 0, 0, 0)
+        buttons_row.setSpacing(8)
+        buttons_row.addWidget(self.spotify_sign_in_btn)
+        buttons_row.addWidget(self.spotify_refresh_devices_btn)
+        lay.addLayout(buttons_row)
+
+        lay.addWidget(self._section_title("Spotify device"))
+        lay.addWidget(self.spotify_devices)
+        lay.addWidget(self.spotify_transfer_btn)
+        lay.addWidget(self.spotify_status)
+        lay.addStretch(1)
+        return section
 
     def _build_general_section(self) -> QWidget:
         section = QWidget()

@@ -153,7 +153,8 @@ class MusicPage(QWidget):
         self.artist.setText(np.artist or "")
 
         # Update play/pause icon
-        self.btn_play.kind = "pause" if np.status == "Playing" else "play"
+        playing = getattr(np, "is_playing", False) or np.status == "Playing"
+        self.btn_play.kind = "pause" if playing else "play"
         self.btn_play.update()
 
         # Update slider

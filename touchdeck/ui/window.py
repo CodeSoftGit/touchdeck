@@ -48,7 +48,9 @@ from touchdeck.ui.widgets import (
     NotificationStack,
     StartupOverlay,
 )
-from touchdeck.services.mpris import MprisService
+from touchdeck.media import MediaError, MediaManager
+from touchdeck.services.mpris import MprisProvider
+from touchdeck.services.spotify_provider import SpotifyProvider
 from touchdeck.services.stats import StatsService
 from touchdeck.services.speedtest import SpeedtestService
 from touchdeck.services.notifications import NotificationListener, SystemNotification
@@ -59,6 +61,7 @@ from touchdeck.settings import (
     reset_settings,
     Settings,
     DEFAULT_PAGE_KEYS,
+    config_dir,
 )
 from touchdeck.themes import build_qss, get_theme, Theme
 from touchdeck.quick_actions import (
@@ -66,7 +69,7 @@ from touchdeck.quick_actions import (
     quick_action_lookup,
     QuickActionOption,
 )
-from touchdeck.utils import ms_to_mmss
+from touchdeck.utils import MediaState, ms_to_mmss
 
 
 @dataclass
@@ -307,7 +310,23 @@ class DeckWindow(QWidget):
         else:
             self._clear_fixed_window()
 
-        self._mpris = MprisService()
+        cfg_dir = config_dir()
+        spotify_cache = cfg_dir / "spotify_token.json"
+        self._mpris_provider = MprisProvider()
+        self._spotify_provider = SpotifyProvider(
+            client_id=self.settings.spotify_client_id,
+            client_secret=self.settings.spotify_client_secret,
+            redirect_port=self.settings.spotify_redirect_port,
+            device_id=self.settings.spotify_device_id,
+            cache_path=spotify_cache,
+        )
+        self._media = MediaManager(
+            {
+                "mpris": self._mpris_provider,
+                "spotify": self._spotify_provider,
+            },
+            lambda: self.settings.media_source,
+        )
         self._lyrics_client = LrclibClient()
         self._lyrics_task: asyncio.Task | None = None
         self._lyrics_track_key: str | None = None
@@ -335,6 +354,9 @@ class DeckWindow(QWidget):
             self._on_reset_requested,
             self._on_clear_cache_requested,
             self._on_restart_requested,
+            self._on_spotify_sign_in,
+            self._on_spotify_refresh_devices,
+            self._on_spotify_transfer,
             theme=self._theme,
         )
 
@@ -537,6 +559,17 @@ class DeckWindow(QWidget):
         self._stats.set_gpu_enabled(self.settings.enable_gpu_stats)
         self._timer_music.setInterval(self.settings.music_poll_ms)
         self._timer_stats.setInterval(self.settings.stats_poll_ms)
+        self._update_media_settings(self.settings)
+
+    def _update_media_settings(self, settings: Settings) -> None:
+        cache = config_dir() / "spotify_token.json"
+        self._spotify_provider.update_config(
+            client_id=settings.spotify_client_id,
+            client_secret=settings.spotify_client_secret,
+            redirect_port=settings.spotify_redirect_port,
+            device_id=settings.spotify_device_id,
+            cache_path=cache,
+        )
 
     def _apply_theme(self, theme: Theme) -> None:
         app = QApplication.instance()
@@ -601,11 +634,11 @@ class DeckWindow(QWidget):
         asyncio.create_task(self._poll_music_async())
 
     async def _poll_music_async(self) -> None:
-        np = await self._mpris.now_playing()
-        self._maybe_update_lyrics(np)
-        self.page_music.set_now_playing(np)
+        state = await self._media.get_state()
+        self._maybe_update_lyrics(state)
+        self.page_music.set_now_playing(state)
 
-    def _maybe_update_lyrics(self, np: NowPlaying) -> None:
+    def _maybe_update_lyrics(self, np: MediaState) -> None:
         key = self._lyrics_key(np)
         if key == self._lyrics_track_key:
             return
@@ -644,7 +677,7 @@ class DeckWindow(QWidget):
         lines.sort(key=lambda line: line.at_ms)
         return SyncedLyrics(lines=lines)
 
-    def _lyrics_key(self, np: NowPlaying) -> str | None:
+    def _lyrics_key(self, np: MediaState) -> str | None:
         if not np.title or not np.artist:
             return None
         if not np.length_ms or np.length_ms <= 0:
@@ -659,7 +692,7 @@ class DeckWindow(QWidget):
         self._lyrics_task.cancel()
         self._lyrics_task = None
 
-    async def _fetch_lyrics(self, np: NowPlaying, track_key: str) -> None:
+    async def _fetch_lyrics(self, np: MediaState, track_key: str) -> None:
         not_found = False
         try:
             lyrics = await self._lyrics_client.fetch_synced(
@@ -732,38 +765,38 @@ class DeckWindow(QWidget):
     # ----- Control callbacks -----
     @Slot()
     def _on_playpause(self) -> None:
-        asyncio.create_task(self._mpris_control("playpause"))
+        asyncio.create_task(self._media_control("playpause"))
 
     @Slot()
     def _on_next(self) -> None:
-        asyncio.create_task(self._mpris_control("next"))
+        asyncio.create_task(self._media_control("next"))
 
     @Slot()
     def _on_prev(self) -> None:
-        asyncio.create_task(self._mpris_control("prev"))
+        asyncio.create_task(self._media_control("prev"))
 
     def _on_seek(self, position_ms: int) -> None:
-        asyncio.create_task(self._mpris_seek(position_ms))
+        asyncio.create_task(self._media_seek(position_ms))
 
-    async def _mpris_control(self, action: str) -> None:
-        np = await self._mpris.now_playing()
-        if not np.bus_name:
-            return
+    async def _media_control(self, action: str) -> None:
+        err = None
         if action == "playpause":
-            await self._mpris.play_pause(np.bus_name)
+            err = await self._media.play_pause()
         elif action == "next":
-            await self._mpris.next(np.bus_name)
+            err = await self._media.next()
         elif action == "prev":
-            await self._mpris.previous(np.bus_name)
+            err = await self._media.previous()
+        if err:
+            self._show_media_error(err)
 
-    async def _mpris_seek(self, position_ms: int) -> None:
-        np = await self._mpris.now_playing()
-        if not (np.bus_name and np.can_seek and np.track_id):
-            return
-        await self._mpris.set_position(np.bus_name, np.track_id, position_ms)
+    async def _media_seek(self, position_ms: int) -> None:
+        err = await self._media.seek(position_ms)
+        if err:
+            self._show_media_error(err)
 
     def _on_settings_changed(self, new_settings: Settings) -> None:
         self.settings = new_settings
+        self._update_media_settings(new_settings)
         save_settings(self.settings)
         self._apply_settings()
 
@@ -793,6 +826,62 @@ class DeckWindow(QWidget):
     def _on_speedtest_requested(self) -> None:
         self.page_speedtest.set_running(True)
         asyncio.create_task(self._run_speedtest())
+
+    def _on_spotify_sign_in(self) -> None:
+        self.page_settings.set_spotify_status("Opening browser for Spotify sign-in…")
+        asyncio.create_task(self._spotify_sign_in_async())
+
+    async def _spotify_sign_in_async(self) -> None:
+        try:
+            await self._spotify_provider.authenticate()
+        except MediaError as exc:
+            self._show_media_error(exc.user_message)
+            self.page_settings.set_spotify_status(exc.user_message)
+            return
+        except Exception as exc:  # pragma: no cover - unexpected auth failure
+            msg = str(exc) or "Spotify sign-in failed"
+            self._show_media_error(msg)
+            self.page_settings.set_spotify_status(msg)
+            return
+        self.page_settings.set_spotify_status("Signed in. Refresh devices to pick one.")
+
+    def _on_spotify_refresh_devices(self) -> None:
+        self.page_settings.set_spotify_status("Refreshing Spotify devices…")
+        asyncio.create_task(self._spotify_refresh_devices_async())
+
+    async def _spotify_refresh_devices_async(self) -> None:
+        try:
+            devices = await self._spotify_provider.list_devices()
+        except MediaError as exc:
+            self._show_media_error(exc.user_message)
+            self.page_settings.set_spotify_status(exc.user_message)
+            return
+        except Exception as exc:  # pragma: no cover - unexpected failure
+            msg = str(exc) or "Could not refresh devices"
+            self._show_media_error(msg)
+            self.page_settings.set_spotify_status(msg)
+            return
+        self.page_settings.set_spotify_devices(devices, self.settings.spotify_device_id)
+        if devices:
+            self.page_settings.set_spotify_status("Select a device and tap Transfer to route playback.")
+        else:
+            self.page_settings.set_spotify_status("No Spotify devices found. Open Spotify on a device and try again.")
+
+    def _on_spotify_transfer(self, device_id: str | None) -> None:
+        if not device_id:
+            self.page_settings.set_spotify_status("Pick a device to transfer playback.")
+            return
+        asyncio.create_task(self._spotify_transfer_async(device_id))
+
+    async def _spotify_transfer_async(self, device_id: str) -> None:
+        err = await self._media.transfer_playback(device_id, play=True)
+        if err:
+            self._show_media_error(err)
+            self.page_settings.set_spotify_status(err)
+            return
+        self.settings = replace(self.settings, spotify_device_id=device_id)
+        save_settings(self.settings)
+        self.page_settings.set_spotify_status("Playback transferred.")
 
     async def _run_speedtest(self) -> None:
         try:
@@ -838,7 +927,7 @@ class DeckWindow(QWidget):
     async def _run_custom_action(self, action: CustomQuickAction) -> None:
         if action.key in self._running_custom_actions:
             return
-        now_playing = await self._mpris.now_playing()
+        now_playing = await self._media.get_state()
         command = self._format_custom_command(action.command, now_playing)
         cancel_event = threading.Event()
         worker = _CommandWorker(command, action.timeout_ms, cancel_event)
@@ -920,6 +1009,13 @@ class DeckWindow(QWidget):
         self.notification_stack.show_notification(
             "Quick actions", summary, body or "", duration_ms=3500
         )
+
+    def _show_media_error(self, message: str) -> None:
+        clean = " ".join((message or "").split()) or "Media control failed"
+        self.notification_stack.show_notification(
+            "Media", clean, "", duration_ms=4000
+        )
+        self._log_event("WARN", "media", clean)
 
     def _format_custom_command(self, template: str, now_playing) -> str:
         ctx = {

@@ -7,7 +7,8 @@ from dbus_next.aio import MessageBus
 from dbus_next.message import Message
 from dbus_next.constants import MessageType
 
-from touchdeck.utils import NowPlaying, unvariant, first_str
+from touchdeck.media import MediaProvider
+from touchdeck.utils import MediaState, unvariant, first_str
 
 
 DBUS_DEST = "org.freedesktop.DBus"
@@ -91,13 +92,13 @@ class MprisService:
         self._preferred = names[0]
         return names[0]
 
-    async def now_playing(self) -> NowPlaying:
+    async def now_playing(self) -> MediaState:
         async with self._lock:
             try:
                 players = await self.list_players()
                 name = await self._pick_player(players)
                 if not name:
-                    return NowPlaying()
+                    return MediaState()
 
                 status: str = await self._get_prop(name, PLAYER_IFACE, "PlaybackStatus")
                 meta: dict[str, Any] = (
@@ -119,21 +120,25 @@ class MprisService:
                 art_url = first_str(meta.get("mpris:artUrl")) or None
                 track_id = first_str(meta.get("mpris:trackid")) or None
 
-                return NowPlaying(
+                is_playing = status == "Playing"
+                return MediaState(
+                    source="mpris",
                     bus_name=name,
                     status=status,
                     title=title,
                     artist=artist,
                     album=album,
                     art_url=art_url,
-                    position_ms=pos_us // 1000,
-                    length_ms=length_us // 1000,
+                    progress_ms=pos_us // 1000,
+                    duration_ms=length_us // 1000,
                     can_seek=can_seek,
+                    can_control=True,
                     track_id=track_id,
+                    is_playing=is_playing,
                 )
             except Exception:
                 # Keep UI alive even if a player vanishes mid-poll.
-                return NowPlaying()
+                return MediaState()
 
     async def _call_player(
         self, dest: str, member: str, signature: str = "", body: list[Any] | None = None
@@ -168,3 +173,37 @@ class MprisService:
             signature="ox",
             body=[track_id, int(position_ms) * 1000],
         )
+
+
+class MprisProvider(MediaProvider):
+    name = "mpris"
+
+    def __init__(self, service: MprisService | None = None) -> None:
+        self._service = service or MprisService()
+
+    async def get_state(self) -> MediaState:
+        return await self._service.now_playing()
+
+    async def play_pause(self) -> None:
+        state = await self._service.now_playing()
+        if state.bus_name:
+            await self._service.play_pause(state.bus_name)
+
+    async def next(self) -> None:
+        state = await self._service.now_playing()
+        if state.bus_name:
+            await self._service.next(state.bus_name)
+
+    async def previous(self) -> None:
+        state = await self._service.now_playing()
+        if state.bus_name:
+            await self._service.previous(state.bus_name)
+
+    async def seek(self, position_ms: int) -> None:
+        state = await self._service.now_playing()
+        if state.bus_name and state.can_seek and state.track_id:
+            await self._service.set_position(state.bus_name, state.track_id, position_ms)
+
+    async def set_volume(self, percent: int) -> None:
+        # Volume is not standardized in MPRIS; ignore.
+        return None

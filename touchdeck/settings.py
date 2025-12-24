@@ -29,6 +29,11 @@ DEFAULT_ENABLED_PAGE_KEYS = ["music", "stats", "clock", "emoji", "speedtest", "s
 
 @dataclass(slots=True)
 class Settings:
+    media_source: str = "mpris"
+    spotify_client_id: str = ""
+    spotify_client_secret: str = ""
+    spotify_redirect_port: int = 8765
+    spotify_device_id: str | None = None
     enable_gpu_stats: bool = True
     clock_24h: bool = False
     show_clock_seconds: bool = False
@@ -69,6 +74,12 @@ def _coerce_theme(val: str) -> str:
     if isinstance(val, str) and val in THEMES:
         return val
     return DEFAULT_THEME_KEY
+
+
+def _coerce_media_source(val: str) -> str:
+    if isinstance(val, str) and val.lower() in ("mpris", "spotify"):
+        return val.lower()
+    return "mpris"
 
 
 def _coerce_quick_actions(
@@ -117,6 +128,11 @@ def _coerce_optional_str(val) -> str | None:
     if isinstance(val, str):
         return val
     return None
+
+
+def _coerce_port(val, default: int = 8765) -> int:
+    num = _coerce_int(val, default, 1024, 65535)
+    return num
 
 
 def _coerce_enabled_pages(val) -> list[str]:
@@ -170,6 +186,11 @@ def load_settings() -> Settings:
     custom_actions = _coerce_custom_actions(data.get("custom_actions"))
 
     return Settings(
+        media_source=_coerce_media_source(data.get("media_source")),
+        spotify_client_id=_coerce_optional_str(data.get("spotify_client_id")) or "",
+        spotify_client_secret=_coerce_optional_str(data.get("spotify_client_secret")) or "",
+        spotify_redirect_port=_coerce_port(data.get("spotify_redirect_port"), 8765),
+        spotify_device_id=_coerce_optional_str(data.get("spotify_device_id")),
         enable_gpu_stats=_coerce_bool(data.get("enable_gpu_stats"), True),
         clock_24h=_coerce_bool(data.get("clock_24h"), False),
         show_clock_seconds=_coerce_bool(data.get("show_clock_seconds"), False),
@@ -192,6 +213,10 @@ def load_settings() -> Settings:
 def save_settings(s: Settings) -> None:
     _CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     _CONFIG_PATH.write_text(json.dumps(asdict(s), indent=2))
+
+
+def config_dir() -> Path:
+    return _CONFIG_PATH.parent
 
 
 def reset_settings() -> None:

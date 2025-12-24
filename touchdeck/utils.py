@@ -38,14 +38,34 @@ def to_local_path(uri: str) -> str:
 
 
 @dataclass(slots=True)
-class NowPlaying:
-    bus_name: str = ""
-    status: str = "Stopped"
+class MediaState:
+    """Provider-agnostic media snapshot used by the UI."""
+
+    source: str = "mpris"  # e.g. mpris | spotify
     title: str = "Nothing Playing"
     artist: str = ""
     album: str = ""
     art_url: str | None = None
-    position_ms: int = 0
-    length_ms: int = 0
+    is_playing: bool = False
+    progress_ms: int = 0
+    duration_ms: int = 0
+    device_name: str = ""
+    volume_percent: int | None = None
     can_seek: bool = False
-    track_id: str | None = None  # D-Bus object path
+    can_control: bool = False
+    track_id: str | None = None
+    bus_name: str = ""  # kept for compatibility with MPRIS custom actions
+    status: str = "Stopped"
+    message: str = ""
+
+    @property
+    def position_ms(self) -> int:
+        return self.progress_ms
+
+    @property
+    def length_ms(self) -> int:
+        return self.duration_ms
+
+
+# Backwards compatibility for existing imports/type hints
+NowPlaying = MediaState
