@@ -76,7 +76,9 @@ class MediaManager:
             state.source = self._settings_source()
             return state
         except MediaError as exc:
-            return MediaState(source=self._settings_source(), status="Error", message=exc.user_message)
+            return MediaState(
+                source=self._settings_source(), status="Error", message=exc.user_message
+            )
         except Exception:
             return MediaState(source=self._settings_source())
 
@@ -101,8 +103,12 @@ class MediaManager:
         except Exception:
             return []
 
-    async def transfer_playback(self, device_id: str, *, play: bool = True) -> str | None:
-        return await self._run_action(lambda p: p.transfer_playback(device_id, play=play))
+    async def transfer_playback(
+        self, device_id: str, *, play: bool = True
+    ) -> str | None:
+        return await self._run_action(
+            lambda p: p.transfer_playback(device_id, play=play)
+        )
 
     async def ensure_ready(self) -> str | None:
         try:
@@ -113,7 +119,9 @@ class MediaManager:
         except Exception:
             return "Media provider not ready"
 
-    async def _run_action(self, fn: Callable[[MediaProvider], Awaitable[None]]) -> str | None:
+    async def _run_action(
+        self, fn: Callable[[MediaProvider], Awaitable[None]]
+    ) -> str | None:
         provider = self._provider()
         try:
             async with self._lock:

@@ -24,7 +24,14 @@ DEFAULT_PAGE_KEYS = [
     "developer",
     "settings",
 ]
-DEFAULT_ENABLED_PAGE_KEYS = ["music", "stats", "clock", "emoji", "speedtest", "settings"]
+DEFAULT_ENABLED_PAGE_KEYS = [
+    "music",
+    "stats",
+    "clock",
+    "emoji",
+    "speedtest",
+    "settings",
+]
 
 
 @dataclass(slots=True)
@@ -188,7 +195,8 @@ def load_settings() -> Settings:
     return Settings(
         media_source=_coerce_media_source(data.get("media_source")),
         spotify_client_id=_coerce_optional_str(data.get("spotify_client_id")) or "",
-        spotify_client_secret=_coerce_optional_str(data.get("spotify_client_secret")) or "",
+        spotify_client_secret=_coerce_optional_str(data.get("spotify_client_secret"))
+        or "",
         spotify_redirect_port=_coerce_port(data.get("spotify_redirect_port"), 8765),
         spotify_device_id=_coerce_optional_str(data.get("spotify_device_id")),
         enable_gpu_stats=_coerce_bool(data.get("enable_gpu_stats"), True),

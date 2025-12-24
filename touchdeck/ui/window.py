@@ -863,9 +863,13 @@ class DeckWindow(QWidget):
             return
         self.page_settings.set_spotify_devices(devices, self.settings.spotify_device_id)
         if devices:
-            self.page_settings.set_spotify_status("Select a device and tap Transfer to route playback.")
+            self.page_settings.set_spotify_status(
+                "Select a device and tap Transfer to route playback."
+            )
         else:
-            self.page_settings.set_spotify_status("No Spotify devices found. Open Spotify on a device and try again.")
+            self.page_settings.set_spotify_status(
+                "No Spotify devices found. Open Spotify on a device and try again."
+            )
 
     def _on_spotify_transfer(self, device_id: str | None) -> None:
         if not device_id:
@@ -933,8 +937,12 @@ class DeckWindow(QWidget):
         worker = _CommandWorker(command, action.timeout_ms, cancel_event)
         thread = QThread(self)
         worker.moveToThread(thread)
-        worker.output.connect(lambda line, key=action.key: self._on_action_output(key, line))
-        worker.error.connect(lambda msg, key=action.key: self._on_action_error(key, msg))
+        worker.output.connect(
+            lambda line, key=action.key: self._on_action_output(key, line)
+        )
+        worker.error.connect(
+            lambda msg, key=action.key: self._on_action_error(key, msg)
+        )
         worker.finished.connect(
             lambda code, timed_out, canceled, key=action.key: self._on_action_finished(
                 key, code, timed_out, canceled
@@ -1012,9 +1020,7 @@ class DeckWindow(QWidget):
 
     def _show_media_error(self, message: str) -> None:
         clean = " ".join((message or "").split()) or "Media control failed"
-        self.notification_stack.show_notification(
-            "Media", clean, "", duration_ms=4000
-        )
+        self.notification_stack.show_notification("Media", clean, "", duration_ms=4000)
         self._log_event("WARN", "media", clean)
 
     def _format_custom_command(self, template: str, now_playing) -> str:
