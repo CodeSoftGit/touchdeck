@@ -120,7 +120,7 @@ def _parse_synced_lyrics(lrc_text: str) -> SyncedLyrics | None:
             millis = int((frac or "0").ljust(3, "0"))
             at_ms = (minutes * 60 + seconds) * 1000 + millis
             lines.append(LyricLine(at_ms=at_ms, text=text))
-    lines.sort(key=lambda l: l.at_ms)
+    lines.sort(key=lambda line: line.at_ms)
     return SyncedLyrics(lines=lines) if lines else None
 
 

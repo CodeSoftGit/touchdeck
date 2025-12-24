@@ -326,7 +326,9 @@ class StartupOverlay(QWidget):
 
     def _on_timeline_value(self, value) -> None:
         progress = max(0.0, min(1.0, float(value)))
-        clamp = lambda v, lo=0.0, hi=1.0: max(lo, min(hi, v))
+
+        def clamp(v, lo=0.0, hi=1.0):
+            return max(lo, min(hi, v))
 
         fade_in = clamp(progress / 0.22)
         drift = clamp((progress - 0.1) / 0.7)

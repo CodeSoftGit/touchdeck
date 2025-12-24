@@ -15,7 +15,6 @@ from PySide6.QtCore import (
     QTimer,
     QObject,
     QPointF,
-    QPoint,
     Slot,
     QProcess,
     QThread,
