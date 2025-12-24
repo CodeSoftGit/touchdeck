@@ -1,0 +1,68 @@
+---
+title: "Touchdeck"
+description: "Touch-friendly control surface for music, stats, and quick actions"
+---
+
+Touchdeck is a touch-first "stream deck" UI for 800x480-ish landscape displays. It wraps your media controls, live lyrics, system stats, and a swipe-up quick actions drawer into a single PySide6 app.
+
+<Columns cols={2}>
+  <Card
+    title="Get set up"
+    icon="rocket"
+    href="/quickstart"
+    horizontal
+  >
+    Install with uv, pick a display, and start the deck.
+  </Card>
+  <Card
+    title="Configure"
+    icon="sliders"
+    href="/configuration"
+  >
+    Themes, polling rates, pages, and quick actions live in settings.json.
+  </Card>
+  <Card
+    title="Learn the UI"
+    icon="grid-2"
+    href="/ui-pages"
+  >
+    Music, stats, speed test, clock, emoji picker, developer info, and settings pages.
+  </Card>
+  <Card
+    title="Troubleshoot"
+    icon="circle-exclamation"
+    href="/troubleshooting"
+  >
+    Fix MPRIS, GPU stats, speed tests, and display setup.
+  </Card>
+</Columns>
+
+## Capabilities at a glance
+
+- Now Playing controls via MPRIS (Linux-first) and Spotify Web API (with optional device transfer)
+- Synced lyrics using LRCLIB with caching and on-demand refresh
+- System stats (CPU/RAM and optional NVIDIA GPU via NVML) with configurable polling
+- Swipe navigation between pages plus swipe-up quick actions drawer
+- Built-in speed test, emoji picker, clock, developer status, and settings pages
+- Themes, UI scale, and opacity for dark kiosks or bright panels
+
+<Info>
+  The docs are mirrored in Context7 for quick answers: https://context7.com/codesoftgit/touchdeck
+</Info>
+
+## Requirements
+
+- Python 3.10+
+- Linux desktop with D-Bus (for MPRIS) and a compatible media player (Spotify, VLC, etc.)
+- Optional: NVIDIA drivers + `nvidia-ml-py` for GPU stats; `speedtest-cli` for speed tests; Spotify client credentials for Spotify mode
+- Small landscape touchscreen (default layout is 800x480); mouse/trackpad also works
+
+## How Touchdeck is built
+
+- PySide6 for UI, qasync to bridge Qt's event loop with asyncio
+- Media providers: MPRIS and Spotify (`touchdeck/services/mpris.py`, `touchdeck/services/spotify_provider.py`)
+- Stats: psutil and optional NVML (`touchdeck/services/stats.py`)
+- Settings stored at `~/.config/touchdeck/settings.json` (`touchdeck/settings.py`)
+- UI pages and widgets under `touchdeck/ui/`
+
+Ready to drive it? Start with the quickstart, then tune settings and quick actions.

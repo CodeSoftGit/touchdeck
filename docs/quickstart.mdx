@@ -1,0 +1,89 @@
+---
+title: "Quickstart"
+description: "Install, launch, and drive Touchdeck in minutes"
+---
+
+## 1) Install Touchdeck
+
+<Steps>
+<Step title="Create a virtual environment (uv recommended)">
+
+```bash
+uv venv
+uv sync
+```
+
+Prefer pip? Use:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+</Step>
+
+<Step title="Optional: install extras">
+- `speedtest-cli` enables the Speed Test page.
+- `nvidia-ml-py` enables GPU stats through NVML.
+- Spotify mode requires client ID/secret from the Spotify dashboard.
+</Step>
+
+<Step title="Run Touchdeck">
+
+```bash
+uv run touchdeck  # or: python -m touchdeck
+```
+
+On first launch you'll be asked to pick a display and whether to start in demo mode.
+
+</Step>
+</Steps>
+
+## 2) Learn the gestures
+
+- Swipe left/right (or use mouse) to move between pages.
+- Swipe up from the bottom edge to open the quick actions drawer; swipe down to close.
+- Tap cards and buttons; sliders support touch + mouse.
+
+## 3) Configure the basics
+
+- Open the Settings page from the last tab.
+- Pick `MPRIS` or `Spotify` as the media source.
+- Set UI scale/opacity to match your panel, and choose a theme.
+- Enable/disable pages you want visible.
+
+<Callout>
+  Settings are stored at `~/.config/touchdeck/settings.json` and saved automatically.
+</Callout>
+
+## 4) Connect Spotify (optional)
+
+<AccordionGroup>
+  <Accordion icon="spotify" title="Authenticate">
+    1. Go to Settings → Music → Spotify.
+    2. Enter your client ID/secret and redirect port (defaults to 8765).
+    3. Tap **Sign in to Spotify** and complete the browser OAuth flow.
+  </Accordion>
+  <Accordion icon="device-phone" title="Pick a device">
+    - Tap **Refresh devices** to list active Spotify Connect devices.
+    - Select the device, then **Transfer playback** to move audio there.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Configure settings" icon="sliders" href="/configuration">
+    Media polling, lyrics cache, GPU toggle, and page visibility.
+  </Card>
+  <Card title="Quick actions" icon="bolt" href="/quick-actions">
+    Add custom shell commands and reorder gestures.
+  </Card>
+  <Card title="Themes & layout" icon="palette" href="/themes">
+    Tune colors, UI scale, and opacity for your display.
+  </Card>
+  <Card title="Troubleshooting" icon="circle-exclamation" href="/troubleshooting">
+    Fix MPRIS, Spotify, speed tests, and display issues.
+  </Card>
+</CardGroup>

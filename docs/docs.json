@@ -1,0 +1,101 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "willow",
+  "name": "Touchdeck",
+  "colors": {
+    "primary": "#a855f7",
+    "light": "#c084fc",
+    "dark": "#7c3aed"
+  },
+  "favicon": "/logo/dark.svg",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Getting started",
+            "pages": [
+              "index",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Using Touchdeck",
+            "pages": [
+              "ui-pages",
+              "quick-actions",
+              "themes"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration"
+            ]
+          },
+          {
+            "group": "Operations",
+            "pages": [
+              "troubleshooting"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "development"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/CodeSoftGit/touchdeck",
+          "icon": "github"
+        },
+        {
+          "anchor": "Context7",
+          "href": "https://context7.com/codesoftgit/touchdeck",
+          "icon": "sparkles"
+        }
+      ]
+    }
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Issues",
+        "href": "https://github.com/CodeSoftGit/touchdeck/issues"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Open Context7",
+      "href": "https://context7.com/codesoftgit/touchdeck"
+    }
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/CodeSoftGit/touchdeck"
+    }
+  }
+}

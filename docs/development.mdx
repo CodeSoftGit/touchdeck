@@ -1,0 +1,85 @@
+---
+title: 'Development'
+description: 'Work on Touchdeck and its docs locally'
+---
+
+## Project layout
+
+- App code: `touchdeck/`
+- Tests: `tests/`
+- Docs (this site): `docs/`
+- Settings + caches at runtime: `~/.config/touchdeck/`
+
+## Dev environment
+
+<Steps>
+<Step title="Install dev dependencies">
+
+```bash
+uv venv
+uv sync --dev
+```
+
+This installs PySide6, qasync, psutil, NVML bindings (optional), Spotipy, and test tools.
+</Step>
+
+<Step title="Run the app locally">
+
+```bash
+uv run touchdeck
+# or: python -m touchdeck
+```
+
+Use `--display` flags? Not needed—the app prompts you to pick a screen on first launch.
+</Step>
+
+<Step title="Run tests">
+
+```bash
+uv run pytest
+```
+
+For coverage:
+
+```bash
+uv run pytest --cov --cov-branch --cov-report=xml --cov-report html:cov_html
+```
+</Step>
+</Steps>
+
+## Code style and linting
+
+- The codebase is type-hinted; prefer mypy-friendly changes.
+- Keep UI styles consistent with `touchdeck/themes.py` and widget helpers.
+- Avoid blocking the Qt event loop—use `asyncio.to_thread` where needed.
+
+## Working on docs
+
+<Steps>
+<Step title="Install the Mintlify CLI">
+
+```bash
+npm i -g mint
+```
+
+</Step>
+
+<Step title="Preview docs">
+
+```bash
+cd docs
+mint dev
+```
+
+Open http://localhost:3000 to view the docs.
+</Step>
+</Steps>
+
+## Where to contribute
+
+- New UI pages or widgets: `touchdeck/ui/`
+- Media providers: `touchdeck/services/mpris.py`, `touchdeck/services/spotify_provider.py`
+- Settings and validation: `touchdeck/settings.py`
+- Quick actions and custom commands: `touchdeck/quick_actions.py` and `touchdeck/ui/window.py`
+
+See [README](../README.md) for user-facing setup.

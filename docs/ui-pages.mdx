@@ -1,0 +1,42 @@
+---
+title: "UI pages"
+description: "What each Touchdeck page does"
+---
+
+Touchdeck ships with several swipeable pages. You can reorder or hide them (except Settings) via `enabled_pages` in settings.
+
+## Music
+
+- Controls play/pause/next/previous for the active provider (MPRIS or Spotify).
+- Seek slider honors provider capabilities (MPRIS `CanSeek`, Spotify always true).
+- Displays cover art (data URLs or HTTP) and metadata; falls back gracefully.
+- Synced lyrics via LRCLIB with inline status messages and caching.
+
+## Stats
+
+- CPU percent, RAM usage, and optional GPU/VRAM usage via NVML.
+- Updates on `stats_poll_ms`; GPU rows hide automatically if disabled.
+
+## Speed Test
+
+- Runs `speedtest-cli` in a worker thread and shows download/upload/ping.
+- Handles missing dependency with a friendly error.
+
+## Clock
+
+- Large clock tuned for 800x480. Supports 12/24h and optional seconds.
+
+## Emoji
+
+- Tap to copy frequently used emoji (including clipboard-friendly text faces).
+- Uses bundled Noto SVG emoji where available; falls back to text.
+
+## Developer
+
+- Shows current theme, UI scale, opacity, demo mode, GPU toggle, and enabled pages.
+- Lists recent warnings/errors emitted by the app.
+
+## Settings
+
+- Central place to adjust media source, theme, display choices, quick actions, and Spotify auth.
+- Editing settings here writes to `~/.config/touchdeck/settings.json` immediately.

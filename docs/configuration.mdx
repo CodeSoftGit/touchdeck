@@ -1,0 +1,33 @@
+---
+title: "Configuration"
+description: "Tune media sources, polling, pages, and caches"
+---
+
+All settings are persisted to `~/.config/touchdeck/settings.json` and loaded on startup. You can edit them in the Settings page or by hand (Touchdeck will coerce invalid values back to safe defaults).
+
+## Core options
+
+- **Media source**: `mpris` (default) or `spotify`. MPRIS uses D-Bus; Spotify uses the Web API.
+- **Polling**: `music_poll_ms` (250–3000 ms) controls media refresh; `stats_poll_ms` (500–5000 ms) controls CPU/RAM/GPU refresh.
+- **GPU stats**: `enable_gpu_stats` toggles NVML usage. When off, GPU rows are hidden.
+- **Clock**: `clock_24h` and `show_clock_seconds` drive the Clock page.
+- **UI**: `ui_scale_percent` (25–200) sets Qt scale; `ui_opacity_percent` (50–100) sets window opacity.
+- **Theme**: `theme` selects a preset. See Themes for details.
+- **Pages**: `enabled_pages` lists the visible pages in order. `settings` is always appended for safety.
+- **Lyrics**: `lyrics_cache` stores LRCLIB lines per track to avoid re-fetching.
+
+## Spotify settings
+
+- **Client ID/secret**: required for Spotify mode; stored locally.
+- **Redirect port**: defaults to 8765 and must match your Spotify app settings.
+- **Device ID**: optional target for play/pause/seek and transfer.
+
+## Quick actions
+
+- **quick_actions**: ordered list of action keys shown in the drawer.
+- **custom_actions**: array of `{key, title, command, timeout_ms}`. Keys must be unique; unknown keys are dropped.
+- Timeout is clamped to 500–300000 ms in `touchdeck/settings.py`.
+
+## Resetting
+
+Delete `~/.config/touchdeck/settings.json` to return to defaults. The next launch will recreate it.

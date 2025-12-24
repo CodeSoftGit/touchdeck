@@ -1,0 +1,36 @@
+---
+title: "Troubleshooting"
+description: "Fix common Touchdeck issues"
+---
+
+## Media / MPRIS
+
+- Ensure a player that implements MPRIS is running (Spotify, VLC, etc.).
+- If nothing appears, restart the player, then Touchdeck.
+- DBus errors: verify you have a session bus (running under X/Wayland on Linux).
+
+## Spotify
+
+- "Spotify is not signed in": redo the Settings → Spotify sign-in flow.
+- "Playback state not available": ensure your Spotify client is active and the selected device is online.
+- Cover art missing: local files may not ship art via Web API; this is expected.
+
+## GPU stats
+
+- Install `nvidia-ml-py` and verify the NVIDIA driver is present.
+- Toggle GPU stats off/on from Quick Actions to reinitialize NVML.
+
+## Speed test
+
+- Install `speedtest-cli` (`pip install speedtest-cli`).
+- Network failures are surfaced in the Speed Test card; try again on a stable link.
+
+## Display and input
+
+- Qt must reach a display; SSH without X forwarding will fail to show a window.
+- Touch input is synthesized from mouse events when missing; true touch works out of the box on Linux.
+
+## Settings
+
+- Corrupt settings file? Delete `~/.config/touchdeck/settings.json` and relaunch.
+- Pages missing: ensure `enabled_pages` contains them; `settings` is always added automatically.

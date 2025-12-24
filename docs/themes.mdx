@@ -1,0 +1,31 @@
+---
+title: "Themes & layout"
+description: "Colors, scaling, and window behavior"
+---
+
+Touchdeck includes preset themes defined in `touchdeck/themes.py`:
+
+- Midnight (default)
+- Glacier
+- Sunset
+- Dawn
+- Aurora
+- Berry
+- Neon
+
+Each theme sets gradients, text/subtle colors, panel/background shades, slider and progress hues. The Settings page lets you switch themes at runtime; changes are applied instantly via Qt style sheets.
+
+## UI scale and opacity
+
+- `ui_scale_percent` scales all Qt widgets (sets `QT_SCALE_FACTOR`); range 25–200.
+- `ui_opacity_percent` dims the window for kiosk-style setups; range 50–100.
+- Demo mode keeps the window resizable; normal mode opens full screen.
+
+## Displays
+
+On first launch, a dialog lets you choose which display to target and whether to enter demo mode. Choices persist in settings.
+
+## Fonts and rounding
+
+- Rounded corners are controlled by `touchdeck/constants.py` (`CORNER_RADIUS = 24`).
+- The UI uses a modern sans stack (`Inter` → `SF Pro` → `Segoe UI` → `Noto Sans` → fallback sans).

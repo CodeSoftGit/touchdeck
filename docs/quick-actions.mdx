@@ -1,0 +1,31 @@
+---
+title: "Quick actions"
+description: "Swipe-up drawer commands and custom actions"
+---
+
+The quick actions drawer opens with an upward swipe from the bottom edge (or mouse drag) and closes with a downward swipe. Actions are large, touch-friendly buttons.
+
+## Built-in actions
+
+- `play_pause` — toggle playback on the current media provider
+- `next_track` — skip forward
+- `prev_track` — go back
+- `run_speedtest` — start a new speed test
+- `toggle_gpu` — enable/disable GPU stats at runtime
+
+Default order: play/pause, next track, run speed test.
+
+## Custom actions
+
+Create custom shell commands from the Settings page. Each action is stored as `{key, title, command, timeout_ms}` in `custom_actions`.
+
+- Keys are slugified; collisions are suffixed (`custom-foo-2`).
+- Commands run via `subprocess.Popen(shell=True)` with live output streamed to the drawer.
+- `timeout_ms` defaults to 8000 and is clamped between 500 and 300000 ms.
+- Actions can be canceled while running.
+
+## Ordering and visibility
+
+- The drawer respects the order in `quick_actions` (unknown keys are filtered).
+- If the list becomes empty, defaults are restored automatically.
+- Custom actions appear alongside built-ins when their keys are listed.
