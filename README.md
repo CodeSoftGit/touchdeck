@@ -28,7 +28,6 @@ Touch-friendly “Stream Deck-like” UI for small landscape displays, focused o
 - Python 3.10+
 - Linux desktop with D-Bus and an MPRIS-compatible player running (Spotify, VLC, etc.)
 - PySide6 runtime (installed via dependencies)
-- Optional: NVIDIA GPU + NVML for GPU stats (`nvidia-ml-py`)
 - A small landscape display (defaults to 800x480) with touch input
 
 ## Install
