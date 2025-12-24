@@ -64,9 +64,7 @@ class DeveloperPage(QWidget):
         self.apply_settings(settings)
 
     @staticmethod
-    def _add_info_row(
-        layout: QGridLayout, row: int, label: str, value: QLabel
-    ) -> None:
+    def _add_info_row(layout: QGridLayout, row: int, label: str, value: QLabel) -> None:
         name = QLabel(label)
         name.setObjectName("Subtle")
         name.setStyleSheet("font-size: 16px;")
