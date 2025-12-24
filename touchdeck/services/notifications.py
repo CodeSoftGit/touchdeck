@@ -56,6 +56,8 @@ class NotificationListener:
                 body=[["interface='org.freedesktop.Notifications'"], 0],
             )
         )
+        if reply is None:
+            raise RuntimeError("No reply from D-Bus")
         if reply.message_type == MessageType.ERROR:
             raise RuntimeError(str(reply.body))
 

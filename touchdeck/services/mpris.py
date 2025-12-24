@@ -4,12 +4,11 @@ import asyncio
 from typing import Any
 
 from dbus_next.aio import MessageBus
-from dbus_next.message import Message
 from dbus_next.constants import MessageType
+from dbus_next.message import Message
 
 from touchdeck.media import MediaProvider
-from touchdeck.utils import MediaState, unvariant, first_str
-
+from touchdeck.utils import MediaState, first_str, unvariant
 
 DBUS_DEST = "org.freedesktop.DBus"
 DBUS_PATH = "/org/freedesktop/DBus"
@@ -41,6 +40,8 @@ class MprisService:
     async def _call(self, msg: Message) -> Any:
         bus = await self._ensure_bus()
         reply = await bus.call(msg)
+        if reply is None:
+            raise RuntimeError("No reply from D-Bus")
         if reply.message_type == MessageType.ERROR:
             raise RuntimeError(str(reply.body))
         return reply.body

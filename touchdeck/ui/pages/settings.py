@@ -401,7 +401,7 @@ class ColorPickerDialog(QDialog):
             f"border-radius: 12px; border: 1px solid {ui_theme.panel_border};"
         )
 
-        self.hex_input = QLineEdit(self._color.name(QColor.HexRgb))
+        self.hex_input = QLineEdit(self._color.name(QColor.NameFormat.HexRgb))
         self.hex_input.textChanged.connect(self._on_hex_changed)
 
         sliders = QVBoxLayout()
@@ -458,7 +458,7 @@ class ColorPickerDialog(QDialog):
             slider.setValue(getter(self._color))
             slider.blockSignals(False)
             value_lbl.setText(str(getter(self._color)))
-        hex_val = self._color.name(QColor.HexRgb)
+        hex_val = self._color.name(QColor.NameFormat.HexRgb)
         if self.hex_input.text() != hex_val:
             self.hex_input.blockSignals(True)
             self.hex_input.setText(hex_val)
@@ -485,7 +485,7 @@ class ColorPickerDialog(QDialog):
         self._sync_from_color()
 
     def _accept(self) -> None:
-        hex_val = self._color.name(QColor.HexRgb)
+        hex_val = self._color.name(QColor.NameFormat.HexRgb)
         self.result_hex = hex_val
         super().accept()
 
@@ -725,7 +725,7 @@ class SettingsPage(QWidget):
         self.spotify_client_id.textChanged.connect(self._emit_change)
 
         self.spotify_client_secret = QLineEdit(settings.spotify_client_secret)
-        self.spotify_client_secret.setEchoMode(QLineEdit.Password)
+        self.spotify_client_secret.setEchoMode(QLineEdit.EchoMode.Password)
         self.spotify_client_secret.setPlaceholderText("Spotify client secret")
         self.spotify_client_secret.textChanged.connect(self._emit_change)
 

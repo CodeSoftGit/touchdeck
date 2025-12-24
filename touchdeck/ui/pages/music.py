@@ -346,7 +346,12 @@ class MusicPage(QWidget):
 
         # Redirects are not errors; you must either set redirect policy or handle manually. :contentReference[oaicite:7]{index=7}
         try:
-            redir = reply.attribute(QNetworkRequest.RedirectionTargetAttribute)
+            redir_attr = getattr(
+                QNetworkRequest,
+                "RedirectionTargetAttribute",
+                QNetworkRequest.Attribute.RedirectionTargetAttribute,
+            )
+            redir = reply.attribute(redir_attr)
             if isinstance(redir, QUrl) and redir.isValid():
                 new_url = reply.url().resolved(redir)
                 new_url_str = new_url.toString()
@@ -365,7 +370,12 @@ class MusicPage(QWidget):
         # Log errors instead of silently doing nothing.
         if reply.error():
             try:
-                status = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+                status_attr = getattr(
+                    QNetworkRequest,
+                    "HttpStatusCodeAttribute",
+                    QNetworkRequest.Attribute.HttpStatusCodeAttribute,
+                )
+                status = reply.attribute(status_attr)
             except Exception:
                 status = None
             try:
@@ -383,7 +393,12 @@ class MusicPage(QWidget):
         ok = pix.loadFromData(bytes(data))
         if not ok or pix.isNull():
             try:
-                status = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+                status_attr = getattr(
+                    QNetworkRequest,
+                    "HttpStatusCodeAttribute",
+                    QNetworkRequest.Attribute.HttpStatusCodeAttribute,
+                )
+                status = reply.attribute(status_attr)
             except Exception:
                 status = None
             print(

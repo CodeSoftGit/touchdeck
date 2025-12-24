@@ -128,7 +128,7 @@ class MultiLineElideLabel(QLabel):
         text: str = "",
         *,
         max_lines: int = 3,
-        mode: Qt.TextElideMode = Qt.ElideRight,
+        mode: Qt.TextElideMode = Qt.TextElideMode.ElideRight,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__("", parent)
@@ -211,7 +211,7 @@ class DotIndicator(QWidget):
         if idx != self._index:
             start = (
                 self._anim_value
-                if self._anim.state() == QAbstractAnimation.Running
+                if self._anim.state() == QAbstractAnimation.State.Running
                 else float(self._index)
             )
             self._index = idx
@@ -435,9 +435,9 @@ class StartupOverlay(QWidget):
             ring_color.setAlphaF(0.35 * self._ring_strength)
             pen = QPen(ring_color)
             pen.setWidth(3)
-            pen.setCapStyle(Qt.RoundCap)
+            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             painter.setPen(pen)
-            painter.setBrush(Qt.NoBrush)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
             ring_radius = ring_radius_base + 90 * self._ring_strength
             painter.drawEllipse(QPointF(cx, cy), ring_radius, ring_radius)
 
@@ -446,9 +446,9 @@ class StartupOverlay(QWidget):
             echo_color.setAlphaF(0.16 * self._echo_strength * self._opacity)
             pen = QPen(echo_color)
             pen.setWidth(6)
-            pen.setCapStyle(Qt.RoundCap)
+            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             painter.setPen(pen)
-            painter.setBrush(Qt.NoBrush)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
             echo_radius = ring_radius_base + 110 + 120 * self._echo_strength
             painter.drawEllipse(QPointF(cx, cy), echo_radius, echo_radius)
 
@@ -684,14 +684,16 @@ class QuickActionsDrawer(QWidget):
         if self._is_open or not self.has_actions():
             return
         self._is_open = True
-        parent_h = self.parent().height() if self.parent() else self.height()
+        parent = self.parentWidget()
+        parent_h = parent.height() if parent else self.height()
         self._animate_to(self._open_y(parent_h))
 
     def close_drawer(self) -> None:
         if not self._is_open:
             return
         self._is_open = False
-        parent_h = self.parent().height() if self.parent() else self.height()
+        parent = self.parentWidget()
+        parent_h = parent.height() if parent else self.height()
         self._animate_to(self._closed_y(parent_h))
 
     def toggle(self) -> None:
@@ -1013,7 +1015,7 @@ class NotificationToast(QWidget):
     def _retarget(self) -> None:
         if not self.isVisible():
             return
-        if self._anim.state() == QAbstractAnimation.Running:
+        if self._anim.state() == QAbstractAnimation.State.Running:
             self._animate_to(self._target_pos, mode="show")
         else:
             self.move(self._target_pos)
@@ -1108,7 +1110,7 @@ class NotificationStack(QWidget):
         if len(self._toasts) >= self._max_toasts:
             oldest = self._toasts.pop(0)
             oldest.hide_toast()
-        toast = NotificationToast(parent=self.parent(), theme=self._theme)
+        toast = NotificationToast(parent=self.parentWidget(), theme=self._theme)
         toast.set_on_closed(lambda t=toast: self._remove_toast(t))
         toast.set_bounds(self._parent_width, self._parent_height)
         self._toasts.append(toast)
