@@ -730,7 +730,9 @@ class SettingsPage(QWidget):
 
         self.spotify_refresh_devices_btn = QPushButton("Refresh devices")
         self.spotify_refresh_devices_btn.setCursor(Qt.PointingHandCursor)
-        self.spotify_refresh_devices_btn.clicked.connect(self._on_spotify_refresh_devices_clicked)
+        self.spotify_refresh_devices_btn.clicked.connect(
+            self._on_spotify_refresh_devices_clicked
+        )
 
         self.spotify_devices = QComboBox()
         self.spotify_devices.addItem("Use active device", None)
@@ -990,9 +992,7 @@ class SettingsPage(QWidget):
             row.timeout_input.setValue(timeout_s)
         row.timeout_input.blockSignals(False)
 
-    def _refresh_quick_action_labels(
-        self, actions: list[CustomQuickAction]
-    ) -> None:
+    def _refresh_quick_action_labels(self, actions: list[CustomQuickAction]) -> None:
         if not self.quick_action_checks:
             return
         lookup = {action.key: action for action in actions}
@@ -1207,7 +1207,9 @@ class SettingsPage(QWidget):
                 self.spotify_devices.setCurrentIndex(idx)
                 return
 
-    def set_spotify_devices(self, devices: list[MediaDevice], selected_id: str | None) -> None:
+    def set_spotify_devices(
+        self, devices: list[MediaDevice], selected_id: str | None
+    ) -> None:
         self._spotify_devices = list(devices)
         self.spotify_devices.blockSignals(True)
         self.spotify_devices.clear()

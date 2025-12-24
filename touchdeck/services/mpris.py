@@ -202,7 +202,9 @@ class MprisProvider(MediaProvider):
     async def seek(self, position_ms: int) -> None:
         state = await self._service.now_playing()
         if state.bus_name and state.can_seek and state.track_id:
-            await self._service.set_position(state.bus_name, state.track_id, position_ms)
+            await self._service.set_position(
+                state.bus_name, state.track_id, position_ms
+            )
 
     async def set_volume(self, percent: int) -> None:
         # Volume is not standardized in MPRIS; ignore.

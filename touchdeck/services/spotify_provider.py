@@ -18,7 +18,9 @@ from touchdeck.media import MediaDevice, MediaError, MediaProvider
 from touchdeck.utils import MediaState
 
 
-_AUTH_SCOPE = "user-read-playback-state user-read-currently-playing user-modify-playback-state"
+_AUTH_SCOPE = (
+    "user-read-playback-state user-read-currently-playing user-modify-playback-state"
+)
 
 
 @dataclass(slots=True)
@@ -94,7 +96,9 @@ class SpotifyProvider(MediaProvider):
         device = playback.get("device") or {}
         track = playback.get("item") or {}
         artists = track.get("artists") or []
-        artist_name = ", ".join([a.get("name", "") for a in artists if isinstance(a, dict)])
+        artist_name = ", ".join(
+            [a.get("name", "") for a in artists if isinstance(a, dict)]
+        )
         album_info = track.get("album") or {}
         album = album_info.get("name") or ""
         images = album_info.get("images") or []
@@ -127,9 +131,13 @@ class SpotifyProvider(MediaProvider):
         is_playing = bool(playback.get("is_playing")) if playback else False
         try:
             if is_playing:
-                await asyncio.to_thread(client.pause_playback, device_id=self._device_id)
+                await asyncio.to_thread(
+                    client.pause_playback, device_id=self._device_id
+                )
             else:
-                await asyncio.to_thread(client.start_playback, device_id=self._device_id)
+                await asyncio.to_thread(
+                    client.start_playback, device_id=self._device_id
+                )
         except SpotifyException as exc:
             raise self._translate_error(exc)
 
@@ -150,7 +158,9 @@ class SpotifyProvider(MediaProvider):
     async def seek(self, position_ms: int) -> None:
         client = await self._get_client()
         try:
-            await asyncio.to_thread(client.seek_track, position_ms, device_id=self._device_id)
+            await asyncio.to_thread(
+                client.seek_track, position_ms, device_id=self._device_id
+            )
         except SpotifyException as exc:
             raise self._translate_error(exc)
 
@@ -189,7 +199,9 @@ class SpotifyProvider(MediaProvider):
     async def transfer_playback(self, device_id: str, *, play: bool = True) -> None:
         client = await self._get_client()
         try:
-            await asyncio.to_thread(client.transfer_playback, device_id, force_play=play)
+            await asyncio.to_thread(
+                client.transfer_playback, device_id, force_play=play
+            )
             self._device_id = device_id
         except SpotifyException as exc:
             raise self._translate_error(exc)
@@ -201,14 +213,20 @@ class SpotifyProvider(MediaProvider):
             if token and not auth.is_token_expired(token):
                 self._auth = auth
                 if self._client is None:
-                    self._client = Spotify(auth_manager=auth, requests_timeout=10, retries=1)
+                    self._client = Spotify(
+                        auth_manager=auth, requests_timeout=10, retries=1
+                    )
                 return self._client
 
             if token and token.get("refresh_token"):
-                refreshed = await asyncio.to_thread(auth.refresh_access_token, token["refresh_token"])
+                refreshed = await asyncio.to_thread(
+                    auth.refresh_access_token, token["refresh_token"]
+                )
                 if refreshed:
                     self._auth = auth
-                    self._client = Spotify(auth_manager=auth, requests_timeout=10, retries=1)
+                    self._client = Spotify(
+                        auth_manager=auth, requests_timeout=10, retries=1
+                    )
                     return self._client
 
             raise MediaError("Spotify is not signed in")
@@ -275,7 +293,9 @@ class SpotifyProvider(MediaProvider):
         thread.start()
         webbrowser.open(auth_url)
         try:
-            waited = await asyncio.wait_for(asyncio.to_thread(code_queue.get), timeout=120)
+            waited = await asyncio.wait_for(
+                asyncio.to_thread(code_queue.get), timeout=120
+            )
             return waited.code
         except asyncio.TimeoutError:
             raise MediaError("Spotify sign-in timed out")
@@ -288,5 +308,7 @@ class SpotifyProvider(MediaProvider):
         if exc.http_status == 403 and "PREMIUM" in msg.upper():
             return MediaError("Spotify Premium is required for that control")
         if exc.http_status == 404 and "NO ACTIVE DEVICE" in msg.upper():
-            return MediaError("No active Spotify device. Pick one in Settings -> Media.")
+            return MediaError(
+                "No active Spotify device. Pick one in Settings -> Media."
+            )
         return MediaError(msg)
