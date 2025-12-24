@@ -8,6 +8,8 @@
 
 Touch-friendly “Stream Deck-like” UI for small landscape displays, focused on quick music controls and system stats.
 
+Docs/Website availible at <https://touchdeck.codesft.dev/>
+
 <img src="images/media.png" alt="Preview of the touchdeck Now Playing view"/>
 
 ## What it does
