@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QGridLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QGridLayout, QLabel, QVBoxLayout, QWidget
 
 from touchdeck.settings import Settings
-from touchdeck.ui.widgets import Card
 from touchdeck.themes import Theme, get_theme
+from touchdeck.ui.widgets import Card
 
 
 class DeveloperPage(QWidget):
@@ -69,8 +69,8 @@ class DeveloperPage(QWidget):
         name.setObjectName("Subtle")
         name.setStyleSheet("font-size: 16px;")
         value.setStyleSheet("font-size: 16px;")
-        layout.addWidget(name, row, 0, Qt.AlignTop)
-        layout.addWidget(value, row, 1, Qt.AlignTop)
+        layout.addWidget(name, row, 0, Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(value, row, 1, Qt.AlignmentFlag.AlignTop)
 
     def apply_settings(self, settings: Settings) -> None:
         self._theme_value.setText(settings.theme)

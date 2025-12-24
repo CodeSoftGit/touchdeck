@@ -6,8 +6,8 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from touchdeck.settings import Settings
-from touchdeck.ui.widgets import Card
 from touchdeck.themes import Theme, get_theme
+from touchdeck.ui.widgets import Card
 
 
 class ClockPage(QWidget):
@@ -25,12 +25,12 @@ class ClockPage(QWidget):
 
         self.time = QLabel("00:00")
         self.time.setStyleSheet("font-size: 110px; font-weight: 650;")
-        self.time.setAlignment(Qt.AlignCenter)
+        self.time.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.ampm = QLabel("AM")
         self.ampm.setObjectName("Subtle")
         self.ampm.setStyleSheet("font-size: 28px;")
-        self.ampm.setAlignment(Qt.AlignCenter)
+        self.ampm.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.card.body.addStretch(1)
         self.card.body.addWidget(self.time)

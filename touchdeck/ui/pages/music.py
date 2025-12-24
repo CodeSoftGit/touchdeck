@@ -7,13 +7,12 @@ from urllib.parse import unquote_to_bytes
 from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QPainter, QPainterPath, QPixmap
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest
-from PySide6.QtWidgets import QLabel, QHBoxLayout, QSlider, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QSlider, QVBoxLayout, QWidget
 
-from touchdeck.utils import NowPlaying, ms_to_mmss
 from touchdeck.LRCLIB import SyncedLyrics
-from touchdeck.ui.widgets import Card, IconButton, ElideLabel, MultiLineElideLabel
 from touchdeck.themes import Theme
-
+from touchdeck.ui.widgets import Card, ElideLabel, IconButton, MultiLineElideLabel
+from touchdeck.utils import NowPlaying, ms_to_mmss
 
 _DATA_URL_MAX_DECODED_BYTES = 3_000_000  # avoid nuking RAM if a provider goes wild
 _HTTP_ART_TIMEOUT_MS = 7000
@@ -23,12 +22,15 @@ def _rounded_pixmap(src: QPixmap, size: int, radius: int) -> QPixmap:
     if src.isNull():
         return QPixmap()
     scaled = src.scaled(
-        size, size, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation
+        size,
+        size,
+        Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+        Qt.TransformationMode.SmoothTransformation,
     )
     out = QPixmap(size, size)
-    out.fill(Qt.transparent)
+    out.fill(Qt.GlobalColor.transparent)
     p = QPainter(out)
-    p.setRenderHint(QPainter.Antialiasing, True)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
     path = QPainterPath()
     path.addRoundedRect(0, 0, size, size, radius, radius)
     p.setClipPath(path)
@@ -95,23 +97,31 @@ class MusicPage(QWidget):
         self.art_size = 156
         self.art_radius = 20
         self.art.setFixedSize(self.art_size, self.art_size)
-        self.art.setAlignment(Qt.AlignCenter)
+        self.art.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.art.setText("♪")
         self._apply_art_style()
 
         # text
-        self.title = ElideLabel("Nothing Playing", mode=Qt.ElideRight)
+        self.title = ElideLabel("Nothing Playing", mode=Qt.TextElideMode.ElideRight)
         self.title.setStyleSheet("font-size: 34px; font-weight: 750;")
-        self.title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.title.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
 
-        self.artist = ElideLabel("", mode=Qt.ElideRight)
+        self.artist = ElideLabel("", mode=Qt.TextElideMode.ElideRight)
         self.artist.setObjectName("Subtle")
         self.artist.setStyleSheet("font-size: 18px;")
-        self.artist.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.artist.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
 
-        self.lyric_line = MultiLineElideLabel("", max_lines=3, mode=Qt.ElideRight)
+        self.lyric_line = MultiLineElideLabel(
+            "", max_lines=3, mode=Qt.TextElideMode.ElideRight
+        )
         self.lyric_line.setObjectName("Subtle")
-        self.lyric_line.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.lyric_line.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
         self.lyric_line.setVisible(False)
         self._apply_lyrics_style()
 
@@ -119,7 +129,7 @@ class MusicPage(QWidget):
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
         header.setSpacing(22)
-        header.addWidget(self.art, 0, Qt.AlignVCenter)
+        header.addWidget(self.art, 0, Qt.AlignmentFlag.AlignVCenter)
 
         text_col = QVBoxLayout()
         text_col.setContentsMargins(0, 0, 0, 0)
@@ -131,7 +141,7 @@ class MusicPage(QWidget):
         header.addLayout(text_col, 1)
 
         # slider + times
-        self.slider = QSlider(Qt.Horizontal)
+        self.slider = QSlider(Qt.Orientation.Horizontal)
         self.slider.setRange(0, 1000)
         self.slider.sliderPressed.connect(self._on_slider_pressed)
         self.slider.sliderReleased.connect(self._on_slider_released)
@@ -140,7 +150,9 @@ class MusicPage(QWidget):
         self.t_left.setObjectName("Subtle")
         self.t_right = QLabel("0:00")
         self.t_right.setObjectName("Subtle")
-        self.t_right.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.t_right.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
 
         time_row = QHBoxLayout()
         time_row.setContentsMargins(0, 0, 0, 0)

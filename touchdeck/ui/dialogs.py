@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
     QDialog,
     QDialogButtonBox,
-    QVBoxLayout,
     QHBoxLayout,
     QLabel,
-    QComboBox,
-    QCheckBox,
+    QVBoxLayout,
 )
 
 
@@ -40,7 +40,9 @@ class DisplayChoiceDialog(QDialog):
         self.demo_mode.setChecked(demo_mode)
         root.addWidget(self.demo_mode)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
 

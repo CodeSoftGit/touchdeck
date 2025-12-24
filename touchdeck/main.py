@@ -8,13 +8,12 @@ from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QDialog
-
 from qasync import QEventLoop
 
 from touchdeck.settings import load_settings, save_settings
 from touchdeck.themes import build_qss, get_theme
-from touchdeck.ui.window import DeckWindow
 from touchdeck.ui.dialogs import DisplayChoiceDialog
+from touchdeck.ui.window import DeckWindow
 
 
 def _load_app_icon() -> QIcon:
@@ -30,7 +29,9 @@ def main() -> None:
     scale_factor = settings.ui_scale_percent / 100
     os.environ["QT_SCALE_FACTOR"] = f"{scale_factor:.2f}".rstrip("0").rstrip(".")
     app = QApplication(sys.argv)
-    app.setAttribute(Qt.AA_SynthesizeTouchForUnhandledMouseEvents, True)
+    app.setAttribute(
+        Qt.ApplicationAttribute.AA_SynthesizeTouchForUnhandledMouseEvents, True
+    )
     app_icon = _load_app_icon()
     full_logo_icon = _load_full_logo_icon()
     if not app_icon.isNull():
@@ -48,7 +49,7 @@ def main() -> None:
             current_display=settings.preferred_display,
             demo_mode=settings.demo_mode,
         )
-        if dlg.exec() == QDialog.Accepted:
+        if dlg.exec() == QDialog.DialogCode.Accepted:
             settings.preferred_display = dlg.selected_display()
             settings.demo_mode = dlg.is_demo_mode()
             settings.display_selected = True

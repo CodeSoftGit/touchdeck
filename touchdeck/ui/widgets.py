@@ -4,45 +4,45 @@ import math
 from typing import Callable
 
 from PySide6.QtCore import (
-    Qt,
-    QSize,
-    QRectF,
-    QVariantAnimation,
     QAbstractAnimation,
-    QPropertyAnimation,
     QEvent,
     QPoint,
     QPointF,
+    QPropertyAnimation,
+    QRectF,
+    QSize,
+    Qt,
     QTimer,
+    QVariantAnimation,
     Signal,
 )
 from PySide6.QtGui import (
     QColor,
+    QFontMetrics,
+    QIcon,
+    QLinearGradient,
     QPainter,
     QPainterPath,
     QPen,
-    QFontMetrics,
+    QPixmap,
+    QRadialGradient,
     QTextLayout,
     QTextOption,
-    QLinearGradient,
-    QRadialGradient,
-    QIcon,
-    QPixmap,
 )
 from PySide6.QtWidgets import (
-    QWidget,
-    QPushButton,
-    QLabel,
-    QHBoxLayout,
-    QVBoxLayout,
-    QProgressBar,
     QGraphicsDropShadowEffect,
     QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QProgressBar,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
 )
 
 from touchdeck.animations import easing_curve
-from touchdeck.themes import Theme, get_theme
 from touchdeck.quick_actions import QuickActionOption
+from touchdeck.themes import Theme, get_theme
 
 
 class Card(QWidget):
@@ -55,7 +55,7 @@ class Card(QWidget):
         super().__init__(parent)
         self._radius = radius
         self._theme = theme or get_theme(None)
-        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self._apply_theme()
 
         # Subtle depth without looking like 2012 skeuomorphism
@@ -94,7 +94,7 @@ class ElideLabel(QLabel):
         self,
         text: str = "",
         *,
-        mode: Qt.TextElideMode = Qt.ElideRight,
+        mode: Qt.TextElideMode = Qt.TextElideMode.ElideRight,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__("", parent)
@@ -157,7 +157,7 @@ class MultiLineElideLabel(QLabel):
 
         layout = QTextLayout(self._full, self.font())
         option = QTextOption()
-        option.setWrapMode(QTextOption.WrapAtWordBoundaryOrAnywhere)
+        option.setWrapMode(QTextOption.WrapMode.WrapAtWordBoundaryOrAnywhere)
         layout.setTextOption(option)
 
         layout.beginLayout()
@@ -238,7 +238,7 @@ class DotIndicator(QWidget):
 
     def paintEvent(self, _ev) -> None:
         p = QPainter(self)
-        p.setRenderHint(QPainter.Antialiasing, True)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
         dot_r = 3.0
         dot_gap = 12
@@ -251,14 +251,14 @@ class DotIndicator(QWidget):
         for i in range(self._count):
             r = dot_r
             p.setBrush(QColor(self._theme.subtle))
-            p.setPen(Qt.NoPen)
+            p.setPen(Qt.PenStyle.NoPen)
             cx = x0 + i * dot_gap
             p.drawEllipse(QRectF(cx - r, y - r, 2 * r, 2 * r))
 
         # Active indicator slides with easing between dots
         active_cx = x0 + self._anim_value * dot_gap
         p.setBrush(QColor(self._theme.accent))
-        p.setPen(Qt.NoPen)
+        p.setPen(Qt.PenStyle.NoPen)
         p.drawEllipse(
             QRectF(active_cx - active_r, y - active_r, 2 * active_r, 2 * active_r)
         )
@@ -286,7 +286,7 @@ class StartupOverlay(QWidget):
         self._sweep_progress = 0.0
         self._echo_strength = 0.0
 
-        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setVisible(False)
 
         self._timeline = QVariantAnimation(self)
@@ -369,7 +369,7 @@ class StartupOverlay(QWidget):
         if self._opacity <= 0.0 or self._logo_pixmap is None:
             return
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing, True)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         grad = QLinearGradient(0, -self._parallax, 0, self.height() + self._parallax)
         top = QColor(self._theme.gradient_top)
         bottom = QColor(self._theme.gradient_bottom)
@@ -402,7 +402,10 @@ class StartupOverlay(QWidget):
         target_w = max(1, target_w)
         target_h = max(1, target_h)
         scaled = self._logo_pixmap.scaled(
-            target_w, target_h, Qt.KeepAspectRatio, Qt.SmoothTransformation
+            target_w,
+            target_h,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
         )
         cx = self.width() / 2
         cy = self.height() / 2
@@ -467,7 +470,7 @@ class IconButton(QPushButton):
         self.diameter = diameter
         self.filled = filled
         self._theme = theme or get_theme(None)
-        self.setCursor(Qt.PointingHandCursor)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFixedSize(diameter, diameter)
         self.setFlat(True)
 
@@ -480,7 +483,7 @@ class IconButton(QPushButton):
 
     def paintEvent(self, _ev) -> None:
         p = QPainter(self)
-        p.setRenderHint(QPainter.Antialiasing, True)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
         rect = QRectF(0, 0, self.width(), self.height())
         r = rect.width() / 2.0
@@ -494,7 +497,7 @@ class IconButton(QPushButton):
             if down:
                 bg = QColor(self._theme.accent_pressed)
             p.setBrush(bg)
-            p.setPen(Qt.NoPen)
+            p.setPen(Qt.PenStyle.NoPen)
             p.drawEllipse(rect)
             icon_color = QColor(self._theme.background)
         else:
@@ -504,12 +507,12 @@ class IconButton(QPushButton):
             if down:
                 bg = QColor(self._theme.neutral_pressed)
             p.setBrush(bg)
-            p.setPen(Qt.NoPen)
+            p.setPen(Qt.PenStyle.NoPen)
             p.drawEllipse(rect)
             icon_color = QColor(self._theme.text)
 
         # icon
-        p.setPen(Qt.NoPen)
+        p.setPen(Qt.PenStyle.NoPen)
         p.setBrush(icon_color)
 
         def triangle(
@@ -580,7 +583,7 @@ class QuickActionsDrawer(QWidget):
         self._buttons: list[QuickActionTile] = []
         self._button_map: dict[str, QuickActionTile] = {}
 
-        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setFixedHeight(self._drawer_height)
 
         self._anim = QPropertyAnimation(self, b"pos")
@@ -601,7 +604,9 @@ class QuickActionsDrawer(QWidget):
         container_layout = QVBoxLayout(container)
         container_layout.setContentsMargins(18, 12, 18, 16)
         container_layout.setSpacing(10)
-        container_layout.addWidget(self._grabber, alignment=Qt.AlignCenter)
+        container_layout.addWidget(
+            self._grabber, alignment=Qt.AlignmentFlag.AlignCenter
+        )
         container_layout.addWidget(self._title)
         container_layout.addLayout(self._actions_layout)
         container_layout.addStretch(1)
@@ -750,15 +755,15 @@ class QuickActionTile(QWidget):
         self._press_timer.setSingleShot(True)
         self._press_timer.timeout.connect(self._emit_long_press)
 
-        self.setCursor(Qt.PointingHandCursor)
-        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
         self._title = QLabel(title)
         self._title.setStyleSheet("font-size: 18px; font-weight: 700;")
-        self._title.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self._title.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self._detail = ElideLabel(detail)
         self._detail.setObjectName("QuickActionDetail")
-        self._detail.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self._detail.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
 
         lay = QVBoxLayout(self)
         lay.setContentsMargins(12, 10, 12, 10)
@@ -780,7 +785,7 @@ class QuickActionTile(QWidget):
         self._apply_style()
 
     def mousePressEvent(self, ev) -> None:  # noqa: N802
-        if ev.button() == Qt.LeftButton:
+        if ev.button() == Qt.MouseButton.LeftButton:
             self._pressed = True
             self._long_press_fired = False
             self._press_timer.start(5000)
@@ -788,7 +793,7 @@ class QuickActionTile(QWidget):
         super().mousePressEvent(ev)
 
     def mouseReleaseEvent(self, ev) -> None:  # noqa: N802
-        if ev.button() == Qt.LeftButton:
+        if ev.button() == Qt.MouseButton.LeftButton:
             if self._press_timer.isActive():
                 self._press_timer.stop()
             if self._pressed and not self._long_press_fired:
@@ -841,8 +846,8 @@ class NotificationToast(QWidget):
     ) -> None:
         super().__init__(parent)
         self.setObjectName("NotificationToast")
-        self.setAttribute(Qt.WA_StyledBackground, True)
-        self.setAttribute(Qt.WA_AcceptTouchEvents, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_AcceptTouchEvents, True)
         self._theme = theme or get_theme(None)
         self._bottom_margin = bottom_margin
         self._side_margin = side_margin
@@ -949,17 +954,17 @@ class NotificationToast(QWidget):
 
     def event(self, ev) -> bool:  # noqa: N802
         t = ev.type()
-        if t == QEvent.TouchBegin:
+        if t == QEvent.Type.TouchBegin:
             pts = ev.points()
             if pts:
                 self._begin_drag(pts[0].position())
             return True
-        if t == QEvent.TouchUpdate:
+        if t == QEvent.Type.TouchUpdate:
             pts = ev.points()
             if pts:
                 self._update_drag(pts[0].position())
             return True
-        if t in (QEvent.TouchEnd, QEvent.TouchCancel):
+        if t in (QEvent.Type.TouchEnd, QEvent.Type.TouchCancel):
             pts = ev.points()
             pos = pts[0].position() if pts else QPointF()
             self._end_drag(pos)
@@ -967,17 +972,17 @@ class NotificationToast(QWidget):
         return super().event(ev)
 
     def mousePressEvent(self, ev) -> None:  # noqa: N802
-        if ev.button() == Qt.LeftButton:
+        if ev.button() == Qt.MouseButton.LeftButton:
             self._begin_drag(ev.position())
         super().mousePressEvent(ev)
 
     def mouseMoveEvent(self, ev) -> None:  # noqa: N802
-        if ev.buttons() & Qt.LeftButton:
+        if ev.buttons() & Qt.MouseButton.LeftButton:
             self._update_drag(ev.position())
         super().mouseMoveEvent(ev)
 
     def mouseReleaseEvent(self, ev) -> None:  # noqa: N802
-        if ev.button() == Qt.LeftButton:
+        if ev.button() == Qt.MouseButton.LeftButton:
             self._end_drag(ev.position())
         super().mouseReleaseEvent(ev)
 
@@ -1082,7 +1087,7 @@ class NotificationStack(QWidget):
         self._parent_width = 0
         self._parent_height = 0
         self._toasts: list[NotificationToast] = []
-        self.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self.hide()
 
     def apply_theme(self, theme: Theme) -> None:
@@ -1160,7 +1165,7 @@ class OnboardingOverlay(QWidget):
         ]
         self._index = 0
 
-        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setVisible(False)
 
         root = QVBoxLayout(self)
@@ -1194,7 +1199,7 @@ class OnboardingOverlay(QWidget):
         body.addStretch(1)
         body.addLayout(buttons)
 
-        root.addWidget(self._card, alignment=Qt.AlignCenter)
+        root.addWidget(self._card, alignment=Qt.AlignmentFlag.AlignCenter)
         root.addStretch(1)
 
         self._skip.clicked.connect(self._finish)
@@ -1289,7 +1294,9 @@ class StatRow(QWidget):
         self._value = QLabel("--")
         self._label.setStyleSheet("font-size: 16px;")
         self._value.setStyleSheet(f"font-size: 16px; color: {self._theme.text};")
-        self._value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self._value.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
 
         self._bar = QProgressBar()
         self._bar.setRange(0, 100)

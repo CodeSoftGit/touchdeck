@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QPushButton, QHBoxLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from touchdeck.services.speedtest import SpeedtestResult
-from touchdeck.ui.widgets import Card
 from touchdeck.themes import Theme, get_theme
+from touchdeck.ui.widgets import Card
 
 
 class SpeedtestPage(QWidget):
@@ -29,13 +29,13 @@ class SpeedtestPage(QWidget):
         self.ping = QLabel("--")
         for lbl in (self.down, self.up, self.ping):
             lbl.setStyleSheet("font-size: 34px; font-weight: 750;")
-            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         def caption(text: str) -> QLabel:
             lab = QLabel(text)
             lab.setObjectName("Subtle")
             lab.setStyleSheet("font-size: 16px;")
-            lab.setAlignment(Qt.AlignCenter)
+            lab.setAlignment(Qt.AlignmentFlag.AlignCenter)
             return lab
 
         row = QHBoxLayout()
@@ -65,7 +65,7 @@ class SpeedtestPage(QWidget):
         row.addLayout(col_ping, 1)
 
         self.btn_run = QPushButton("Run speed test")
-        self.btn_run.setCursor(Qt.PointingHandCursor)
+        self.btn_run.setCursor(Qt.CursorShape.PointingHandCursor)
         self._apply_button_theme()
         self.btn_run.clicked.connect(self._on_run_clicked)
 
@@ -74,7 +74,7 @@ class SpeedtestPage(QWidget):
         self.card.body.addSpacing(8)
         self.card.body.addLayout(row)
         self.card.body.addSpacing(12)
-        self.card.body.addWidget(self.btn_run, alignment=Qt.AlignCenter)
+        self.card.body.addWidget(self.btn_run, alignment=Qt.AlignmentFlag.AlignCenter)
 
         lay = QVBoxLayout(self)
         lay.setContentsMargins(26, 26, 26, 26)

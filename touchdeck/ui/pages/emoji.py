@@ -3,18 +3,12 @@ from __future__ import annotations
 from functools import partial
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, QSize
+from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QGuiApplication, QIcon
-from PySide6.QtWidgets import (
-    QGridLayout,
-    QLabel,
-    QPushButton,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QGridLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
-from touchdeck.ui.widgets import Card
 from touchdeck.themes import Theme, get_theme
+from touchdeck.ui.widgets import Card
 
 
 class EmojiPage(QWidget):
@@ -59,7 +53,7 @@ class EmojiPage(QWidget):
             }
             """
         )
-        self._toast.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self._toast.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
 
         # bare grid of emoji-only buttons
         grid = QGridLayout()
@@ -73,7 +67,7 @@ class EmojiPage(QWidget):
             icon = self._icon_for_file(filename)
             btn = QPushButton()
             btn.setFixedSize(74, 74)
-            btn.setCursor(Qt.PointingHandCursor)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
             if not icon.isNull():
                 btn.setIcon(icon)
                 btn.setIconSize(QSize(48, 48))

@@ -3,70 +3,70 @@ from __future__ import annotations
 import asyncio
 import select
 import subprocess
+import sys
 import threading
 from dataclasses import dataclass, replace
 from datetime import datetime
-import sys
 from time import monotonic
 
 from PySide6.QtCore import (
-    Qt,
     QEvent,
-    QTimer,
     QObject,
     QPointF,
-    Slot,
     QProcess,
+    Qt,
     QThread,
+    QTimer,
     Signal,
+    Slot,
 )
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
-    QApplication,
-    QWidget,
-    QVBoxLayout,
-    QStackedWidget,
-    QStackedLayout,
     QAbstractSlider,
+    QApplication,
+    QStackedLayout,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
 )
 
-from touchdeck.constants import WINDOW_W, WINDOW_H, CORNER_RADIUS
+from touchdeck.constants import CORNER_RADIUS, WINDOW_H, WINDOW_W
+from touchdeck.LRCLIB import LrclibClient, LyricLine, LyricsNotFoundError, SyncedLyrics
+from touchdeck.media import MediaError, MediaManager
+from touchdeck.quick_actions import (
+    CustomQuickAction,
+    QuickActionOption,
+    quick_action_lookup,
+)
+from touchdeck.services.mpris import MprisProvider
+from touchdeck.services.notifications import NotificationListener, SystemNotification
+from touchdeck.services.speedtest import SpeedtestService
+from touchdeck.services.spotify_provider import SpotifyProvider
+from touchdeck.services.stats import StatsService
+from touchdeck.settings import (
+    DEFAULT_PAGE_KEYS,
+    Settings,
+    config_dir,
+    load_settings,
+    reset_settings,
+    save_settings,
+)
+from touchdeck.themes import Theme, build_qss, get_theme
 from touchdeck.ui.pages import (
-    MusicPage,
-    StatsPage,
     ClockPage,
     DeveloperPage,
+    EmojiPage,
+    MusicPage,
     SettingsPage,
     SpeedtestPage,
-    EmojiPage,
+    StatsPage,
 )
 from touchdeck.ui.widgets import (
     DotIndicator,
-    QuickActionsDrawer,
-    OnboardingOverlay,
     NotificationStack,
+    OnboardingOverlay,
+    QuickActionsDrawer,
     StartupOverlay,
-)
-from touchdeck.media import MediaError, MediaManager
-from touchdeck.services.mpris import MprisProvider
-from touchdeck.services.spotify_provider import SpotifyProvider
-from touchdeck.services.stats import StatsService
-from touchdeck.services.speedtest import SpeedtestService
-from touchdeck.services.notifications import NotificationListener, SystemNotification
-from touchdeck.LRCLIB import LrclibClient, LyricLine, SyncedLyrics, LyricsNotFoundError
-from touchdeck.settings import (
-    load_settings,
-    save_settings,
-    reset_settings,
-    Settings,
-    DEFAULT_PAGE_KEYS,
-    config_dir,
-)
-from touchdeck.themes import build_qss, get_theme, Theme
-from touchdeck.quick_actions import (
-    CustomQuickAction,
-    quick_action_lookup,
-    QuickActionOption,
 )
 from touchdeck.utils import MediaState, ms_to_mmss
 
@@ -124,7 +124,7 @@ class _CommandWorker(QObject):
                         timed_out = True
                         proc.terminate()
 
-                if fd is not None:
+                if fd is not None and stdout is not None:
                     ready, _, _ = select.select([fd], [], [], 0.2)
                     if ready:
                         line = stdout.readline()
@@ -190,20 +190,26 @@ class SwipeNavigator(QObject):
     def eventFilter(self, obj, ev) -> bool:  # noqa: N802
         t = ev.type()
 
-        if t == QEvent.MouseButtonPress and ev.button() == Qt.LeftButton:
+        if (
+            t == QEvent.Type.MouseButtonPress
+            and ev.button() == Qt.MouseButton.LeftButton
+        ):
             self._begin(ev.position(), self._should_ignore(obj, ev.position()))
             return False
 
-        if t == QEvent.MouseButtonRelease and ev.button() == Qt.LeftButton:
+        if (
+            t == QEvent.Type.MouseButtonRelease
+            and ev.button() == Qt.MouseButton.LeftButton
+        ):
             self._end(ev.position())
             return False
 
-        if t == QEvent.TouchBegin:
+        if t == QEvent.Type.TouchBegin:
             p = self._touch_pos(ev)
             self._begin(p, self._should_ignore(obj, p))
             return False
 
-        if t in (QEvent.TouchEnd, QEvent.TouchCancel):
+        if t in (QEvent.Type.TouchEnd, QEvent.Type.TouchCancel):
             p = self._touch_pos(ev)
             self._end(p)
             return False
@@ -294,7 +300,7 @@ class DeckWindow(QWidget):
         super().__init__()
         self.setObjectName("DeckWindow")
         self.setWindowTitle("touchdeck")
-        self.setAttribute(Qt.WA_AcceptTouchEvents, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_AcceptTouchEvents, True)
         self.setStyleSheet(f"border-radius: {CORNER_RADIUS}px;")
 
         self.settings = settings or load_settings()
@@ -335,7 +341,7 @@ class DeckWindow(QWidget):
         self.stack = QStackedWidget()
         self._stack_layout = self.stack.layout()
         if isinstance(self._stack_layout, QStackedLayout):
-            self._stack_layout.setStackingMode(QStackedLayout.StackAll)
+            self._stack_layout.setStackingMode(QStackedLayout.StackingMode.StackAll)
         self.page_music = MusicPage(self._theme)
         self.page_stats = StatsPage(self.settings, theme=self._theme)
         self.page_clock = ClockPage(self.settings, theme=self._theme)
@@ -571,7 +577,7 @@ class DeckWindow(QWidget):
 
     def _apply_theme(self, theme: Theme) -> None:
         app = QApplication.instance()
-        if app is not None:
+        if isinstance(app, QApplication):
             app.setStyleSheet(build_qss(theme))
         self.page_music.apply_theme(theme)
         self.page_stats.apply_theme(theme)
@@ -603,7 +609,7 @@ class DeckWindow(QWidget):
 
     def _apply_display_preference(self) -> None:
         app = QApplication.instance()
-        if app is None:
+        if not isinstance(app, QApplication):
             return
         screens = app.screens()
         target = None

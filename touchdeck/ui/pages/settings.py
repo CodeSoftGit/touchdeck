@@ -28,7 +28,6 @@ from PySide6.QtWidgets import (
 )
 
 from touchdeck.media import MediaDevice
-from touchdeck.settings import Settings, DEFAULT_PAGE_KEYS
 from touchdeck.quick_actions import (
     DEFAULT_CUSTOM_ACTION_TIMEOUT_MS,
     CustomQuickAction,
@@ -36,9 +35,9 @@ from touchdeck.quick_actions import (
     generate_custom_action_key,
     ordered_quick_action_options,
 )
+from touchdeck.settings import DEFAULT_PAGE_KEYS, Settings
+from touchdeck.themes import DEFAULT_THEME_KEY, Theme, get_theme, theme_options
 from touchdeck.ui.widgets import Card
-from touchdeck.themes import Theme, DEFAULT_THEME_KEY, get_theme, theme_options
-
 
 PAGE_LABELS = {
     "music": "Music",
@@ -106,7 +105,7 @@ class CustomActionRow(QWidget):
         self.timeout_input.valueChanged.connect(self._emit_change)
 
         remove_btn = QPushButton("Remove")
-        remove_btn.setCursor(Qt.PointingHandCursor)
+        remove_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         remove_btn.clicked.connect(self._emit_remove)
 
         top = QHBoxLayout()
@@ -215,7 +214,7 @@ class ToggleRow(QWidget):
         self._btn = QPushButton()
         self._btn.setCheckable(True)
         self._btn.setChecked(initial)
-        self._btn.setCursor(Qt.PointingHandCursor)
+        self._btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._btn.clicked.connect(self._on_clicked)
         self._apply_theme()
 
@@ -279,13 +278,13 @@ class DragScrollArea(QScrollArea):
         self._dragging = False
         self._last_y = 0.0
         self.setWidgetResizable(True)
-        self.setFrameShape(QFrame.NoFrame)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self._apply_style()
 
     def mousePressEvent(self, ev) -> None:
-        if ev.button() == Qt.LeftButton:
+        if ev.button() == Qt.MouseButton.LeftButton:
             self._dragging = True
             self._last_y = ev.position().y()
         super().mousePressEvent(ev)
@@ -299,7 +298,7 @@ class DragScrollArea(QScrollArea):
         super().mouseMoveEvent(ev)
 
     def mouseReleaseEvent(self, ev) -> None:
-        if ev.button() == Qt.LeftButton:
+        if ev.button() == Qt.MouseButton.LeftButton:
             self._dragging = False
         super().mouseReleaseEvent(ev)
 
@@ -416,7 +415,7 @@ class ColorPickerDialog(QDialog):
             row.setSpacing(8)
             lbl = QLabel(channel)
             lbl.setFixedWidth(18)
-            slider = QSlider(Qt.Horizontal)
+            slider = QSlider(Qt.Orientation.Horizontal)
             slider.setRange(0, 255)
             slider.valueChanged.connect(self._on_slider_changed)
             value_lbl = QLabel("0")
@@ -427,12 +426,19 @@ class ColorPickerDialog(QDialog):
             sliders.addLayout(row)
             self._slider_rows.append((slider, value_lbl, getter))
 
-        buttons = QDialogButtonBox(QDialogButtonBox.Cancel | QDialogButtonBox.Save)
-        if buttons.button(QDialogButtonBox.Save):
-            buttons.button(QDialogButtonBox.Save).setText("Use color")
-            buttons.button(QDialogButtonBox.Save).setCursor(Qt.PointingHandCursor)
-        if buttons.button(QDialogButtonBox.Cancel):
-            buttons.button(QDialogButtonBox.Cancel).setCursor(Qt.PointingHandCursor)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Cancel
+            | QDialogButtonBox.StandardButton.Save
+        )
+        if buttons.button(QDialogButtonBox.StandardButton.Save):
+            buttons.button(QDialogButtonBox.StandardButton.Save).setText("Use color")
+            buttons.button(QDialogButtonBox.StandardButton.Save).setCursor(
+                Qt.CursorShape.PointingHandCursor
+            )
+        if buttons.button(QDialogButtonBox.StandardButton.Cancel):
+            buttons.button(QDialogButtonBox.StandardButton.Cancel).setCursor(
+                Qt.CursorShape.PointingHandCursor
+            )
         buttons.accepted.connect(self._accept)
         buttons.rejected.connect(self.reject)
 
@@ -562,7 +568,7 @@ class ThemeCreatorDialog(QDialog):
             label = QLabel(field.replace("_", " ").title())
             input_box = QLineEdit(getattr(base_theme, field))
             pick = QPushButton("Pick")
-            pick.setCursor(Qt.PointingHandCursor)
+            pick.setCursor(Qt.CursorShape.PointingHandCursor)
             self._color_inputs[field] = input_box
             self._color_buttons[field] = pick
             pick.clicked.connect(partial(self._pick_color, field))
@@ -574,14 +580,17 @@ class ThemeCreatorDialog(QDialog):
             colors.addWidget(pick, row, 2)
             self._update_color_button(field, input_box.text())
 
-        buttons = QDialogButtonBox(QDialogButtonBox.Cancel | QDialogButtonBox.Save)
-        btn_save = buttons.button(QDialogButtonBox.Save)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Cancel
+            | QDialogButtonBox.StandardButton.Save
+        )
+        btn_save = buttons.button(QDialogButtonBox.StandardButton.Save)
         if btn_save:
             btn_save.setText("Save theme")
-            btn_save.setCursor(Qt.PointingHandCursor)
-        btn_cancel = buttons.button(QDialogButtonBox.Cancel)
+            btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_cancel = buttons.button(QDialogButtonBox.StandardButton.Cancel)
         if btn_cancel:
-            btn_cancel.setCursor(Qt.PointingHandCursor)
+            btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
 
@@ -602,7 +611,7 @@ class ThemeCreatorDialog(QDialog):
     def _pick_color(self, field: str) -> None:
         current = self._color_inputs[field].text()
         dlg = ColorPickerDialog(self, initial=current, ui_theme=self._ui_theme)
-        if dlg.exec() == QDialog.Accepted and dlg.result_hex:
+        if dlg.exec() == QDialog.DialogCode.Accepted and dlg.result_hex:
             self._color_inputs[field].setText(dlg.result_hex)
 
     def _update_color_button(self, field: str, value: str) -> None:
@@ -726,11 +735,11 @@ class SettingsPage(QWidget):
         self.spotify_redirect_port.valueChanged.connect(self._emit_change)
 
         self.spotify_sign_in_btn = QPushButton("Sign in to Spotify")
-        self.spotify_sign_in_btn.setCursor(Qt.PointingHandCursor)
+        self.spotify_sign_in_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.spotify_sign_in_btn.clicked.connect(self._on_spotify_sign_in_clicked)
 
         self.spotify_refresh_devices_btn = QPushButton("Refresh devices")
-        self.spotify_refresh_devices_btn.setCursor(Qt.PointingHandCursor)
+        self.spotify_refresh_devices_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.spotify_refresh_devices_btn.clicked.connect(
             self._on_spotify_refresh_devices_clicked
         )
@@ -740,7 +749,7 @@ class SettingsPage(QWidget):
         self.spotify_devices.currentIndexChanged.connect(self._emit_change)
 
         self.spotify_transfer_btn = QPushButton("Transfer to selected device")
-        self.spotify_transfer_btn.setCursor(Qt.PointingHandCursor)
+        self.spotify_transfer_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.spotify_transfer_btn.clicked.connect(self._on_spotify_transfer_clicked)
 
         self.spotify_status = QLabel("")
@@ -791,11 +800,13 @@ class SettingsPage(QWidget):
         bright_row.setContentsMargins(0, 0, 0, 0)
         bright_row.addWidget(QLabel("Brightness"), 1)
         self.brightness_value = QLabel("70%")
-        self.brightness_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.brightness_value.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
         self.brightness_value.setObjectName("Subtle")
         bright_row.addWidget(self.brightness_value, 0)
 
-        self.brightness = QSlider(Qt.Horizontal)
+        self.brightness = QSlider(Qt.Orientation.Horizontal)
         self.brightness.setRange(0, 100)
         self.brightness.valueChanged.connect(self._on_brightness_change)
 
@@ -804,11 +815,13 @@ class SettingsPage(QWidget):
         scale_row.setContentsMargins(0, 0, 0, 0)
         scale_row.addWidget(QLabel("Scale"), 1)
         self.ui_scale_value = QLabel("100%")
-        self.ui_scale_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.ui_scale_value.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
         self.ui_scale_value.setObjectName("Subtle")
         scale_row.addWidget(self.ui_scale_value, 0)
 
-        self.ui_scale = QSlider(Qt.Horizontal)
+        self.ui_scale = QSlider(Qt.Orientation.Horizontal)
         self.ui_scale.setRange(25, 200)
         self.ui_scale.valueChanged.connect(self._on_scale_change)
 
@@ -818,26 +831,30 @@ class SettingsPage(QWidget):
 
         # Poll intervals
         self.music_poll_value = QLabel("0 ms")
-        self.music_poll_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.music_poll_value.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
         self.music_poll_value.setObjectName("Subtle")
         music_row = QHBoxLayout()
         music_row.setContentsMargins(0, 0, 0, 0)
         music_row.addWidget(QLabel("Music refresh"), 1)
         music_row.addWidget(self.music_poll_value, 0)
 
-        self.music_poll = QSlider(Qt.Horizontal)
+        self.music_poll = QSlider(Qt.Orientation.Horizontal)
         self.music_poll.setRange(250, 3000)
         self.music_poll.valueChanged.connect(self._on_poll_change)
 
         self.stats_poll_value = QLabel("0 ms")
-        self.stats_poll_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.stats_poll_value.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
         self.stats_poll_value.setObjectName("Subtle")
         stats_row = QHBoxLayout()
         stats_row.setContentsMargins(0, 0, 0, 0)
         stats_row.addWidget(QLabel("Stats refresh"), 1)
         stats_row.addWidget(self.stats_poll_value, 0)
 
-        self.stats_poll = QSlider(Qt.Horizontal)
+        self.stats_poll = QSlider(Qt.Orientation.Horizontal)
         self.stats_poll.setRange(500, 5000)
         self.stats_poll.valueChanged.connect(self._on_poll_change)
 
@@ -866,7 +883,7 @@ class SettingsPage(QWidget):
             self._sections.addWidget(widget)
             btn = QPushButton(label)
             btn.setCheckable(True)
-            btn.setCursor(Qt.PointingHandCursor)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.clicked.connect(partial(self._on_nav_clicked, idx))
             self._nav_buttons.append(btn)
             nav_row.addWidget(btn)
@@ -1299,7 +1316,7 @@ class SettingsPage(QWidget):
             )
 
     def _style_exit_button(self, btn: QPushButton) -> None:
-        btn.setCursor(Qt.PointingHandCursor)
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setStyleSheet(
             f"""
             QPushButton {{
@@ -1323,7 +1340,7 @@ class SettingsPage(QWidget):
         self._style_reset_button(btn)
 
     def _style_reset_button(self, btn: QPushButton) -> None:
-        btn.setCursor(Qt.PointingHandCursor)
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setStyleSheet(
             f"""
             QPushButton {{
@@ -1483,12 +1500,12 @@ class SettingsPage(QWidget):
         info.setWordWrap(True)
 
         self._add_custom_action_btn = QPushButton("Add custom action")
-        self._add_custom_action_btn.setCursor(Qt.PointingHandCursor)
+        self._add_custom_action_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._add_custom_action_btn.clicked.connect(self._add_custom_action)
 
         lay.addLayout(self._custom_actions_wrap)
         lay.addWidget(info)
-        lay.addWidget(self._add_custom_action_btn, alignment=Qt.AlignLeft)
+        lay.addWidget(self._add_custom_action_btn, alignment=Qt.AlignmentFlag.AlignLeft)
         return panel
 
     def _sync_custom_actions(self, actions: list[CustomQuickAction]) -> None:
