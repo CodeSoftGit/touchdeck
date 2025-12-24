@@ -8,7 +8,7 @@
 
 Touch-friendly “Stream Deck-like” UI for small landscape displays, focused on quick music controls and system stats.
 
-<img width="794" height="507" alt="touchdeck screenshot" src="https://github.com/user-attachments/assets/e11b0a90-857f-47ad-b9c8-e6f25e89dd63" />
+<img src="images/media.png" alt="Preview of the touchdeck Now Playing view"/>
 
 ## What it does
 
@@ -38,8 +38,6 @@ Touch-friendly “Stream Deck-like” UI for small landscape displays, focused o
 ```bash
 uv venv
 uv sync
-# Optional GPU support
-uv pip install nvidia-ml-py
 ```
 
 ### Using pip
@@ -48,7 +46,7 @@ uv pip install nvidia-ml-py
 python -m venv .venv
 source .venv/bin/activate
 pip install -U pip
-pip install -e ".[nvidia]"   # drop [nvidia] if you don't need GPU stats
+pip install -e .
 ```
 
 ## Run
@@ -60,34 +58,34 @@ touchdeck               # if installed via pip
 python -m touchdeck
 ```
 
+## As a developer
+
+### Installing
+
+Use uv.
+
+```bash
+uv venv
+uv sync --dev
+```
+
+### Testing
+Without generating a coverage report:
+
+```bash
+uv run pytest
+```
+
+Generating a coverage report:
+
+```bash
+uv run pytest --cov --cov-branch --cov-report=xml --cov-report html:cov_html
+```bash
+
 ## Configuration
 
 - Settings are stored at `~/.config/touchdeck/settings.json` (created on first save).
-- Defaults:
-  - `enable_gpu_stats`: true
-  - `clock_24h`: false
-  - `show_clock_seconds`: false
-  - `music_poll_ms`: 500
-  - `stats_poll_ms`: 1000
-  - `ui_opacity_percent`: 90
-  - `theme`: `midnight`
-  - `quick_actions`: `["play_pause", "next_track", "run_speedtest"]`
-- Available themes: `midnight`, `glacier`, `sunset`, `dawn`, `aurora`, `berry`, `neon`
-
-Example:
-
-```json
-{
-  "enable_gpu_stats": false,
-  "clock_24h": true,
-  "show_clock_seconds": true,
-  "music_poll_ms": 750,
-  "stats_poll_ms": 1500,
-  "ui_opacity_percent": 90,
-  "theme": "glacier",
-  "quick_actions": ["play_pause", "run_speedtest", "toggle_gpu"]
-}
-```
+- The touchdeck UI lets you configure them in the settings page,
 
 ## Troubleshooting
 
