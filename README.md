@@ -80,12 +80,12 @@ Generating a coverage report:
 
 ```bash
 uv run pytest --cov --cov-branch --cov-report=xml --cov-report html:cov_html
-```bash
+```
 
 ## Configuration
 
 - Settings are stored at `~/.config/touchdeck/settings.json` (created on first save).
-- The touchdeck UI lets you configure them in the settings page,
+- The touchdeck UI lets you configure them in the settings page.
 
 ## Troubleshooting
 
