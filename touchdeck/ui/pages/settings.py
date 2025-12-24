@@ -593,7 +593,8 @@ class ThemeCreatorDialog(QDialog):
         main.addStretch(1)
         main.addWidget(buttons)
 
-    def _slugify_key(self, raw: str) -> str:
+    @staticmethod
+    def _slugify_key(raw: str) -> str:
         cleaned = re.sub(r"[^a-zA-Z0-9_-]+", "-", raw.strip().lower())
         cleaned = re.sub(r"-{2,}", "-", cleaned).strip("-")
         return cleaned[:48]
@@ -968,8 +969,9 @@ class SettingsPage(QWidget):
 
         self._refresh_quick_action_labels(actions)
 
+    @staticmethod
     def _update_custom_action_row(
-        self, row: CustomActionRow, action: CustomQuickAction
+        row: CustomActionRow, action: CustomQuickAction
     ) -> None:
         if row.title_input.hasFocus() or row.command_input.hasFocus():
             return
@@ -1398,7 +1400,8 @@ class SettingsPage(QWidget):
             btn.blockSignals(False)
         self._style_nav_buttons()
 
-    def _section_title(self, text: str) -> QLabel:
+    @staticmethod
+    def _section_title(text: str) -> QLabel:
         lbl = QLabel(text)
         lbl.setObjectName("Subtle")
         lbl.setStyleSheet("font-size: 16px; font-weight: 650; padding-top: 4px;")

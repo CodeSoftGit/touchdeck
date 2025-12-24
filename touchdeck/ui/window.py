@@ -211,7 +211,8 @@ class SwipeNavigator(QObject):
 
         return False
 
-    def _touch_pos(self, ev) -> QPointF:
+    @staticmethod
+    def _touch_pos(ev) -> QPointF:
         # Qt6 touch events expose points()
         pts = getattr(ev, "points", None)
         if callable(pts):
@@ -677,7 +678,8 @@ class DeckWindow(QWidget):
         lines.sort(key=lambda line: line.at_ms)
         return SyncedLyrics(lines=lines)
 
-    def _lyrics_key(self, np: MediaState) -> str | None:
+    @staticmethod
+    def _lyrics_key(np: MediaState) -> str | None:
         if not np.title or not np.artist:
             return None
         if not np.length_ms or np.length_ms <= 0:
@@ -800,12 +802,14 @@ class DeckWindow(QWidget):
         save_settings(self.settings)
         self._apply_settings()
 
-    def _on_exit_requested(self) -> None:
+    @staticmethod
+    def _on_exit_requested() -> None:
         app = QApplication.instance()
         if app is not None:
             app.quit()
 
-    def _on_reset_requested(self) -> None:
+    @staticmethod
+    def _on_reset_requested() -> None:
         # Clear persisted settings and restart the app fresh.
         reset_settings()
         app = QApplication.instance()
@@ -817,7 +821,8 @@ class DeckWindow(QWidget):
         self.settings = replace(self.settings, lyrics_cache={})
         save_settings(self.settings)
 
-    def _on_restart_requested(self) -> None:
+    @staticmethod
+    def _on_restart_requested() -> None:
         app = QApplication.instance()
         if app is not None:
             QProcess.startDetached(sys.executable or "python", ["-m", "touchdeck"])
@@ -1023,7 +1028,8 @@ class DeckWindow(QWidget):
         self.notification_stack.show_notification("Media", clean, "", duration_ms=4000)
         self._log_event("WARN", "media", clean)
 
-    def _format_custom_command(self, template: str, now_playing) -> str:
+    @staticmethod
+    def _format_custom_command(template: str, now_playing) -> str:
         ctx = {
             "title": now_playing.title or "",
             "artist": now_playing.artist or "",

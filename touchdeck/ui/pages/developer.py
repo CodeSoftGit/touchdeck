@@ -63,8 +63,9 @@ class DeveloperPage(QWidget):
 
         self.apply_settings(settings)
 
+    @staticmethod
     def _add_info_row(
-        self, layout: QGridLayout, row: int, label: str, value: QLabel
+        layout: QGridLayout, row: int, label: str, value: QLabel
     ) -> None:
         name = QLabel(label)
         name.setObjectName("Subtle")

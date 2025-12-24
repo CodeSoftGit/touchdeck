@@ -15,7 +15,8 @@ class SpeedtestService:
     async def run(self) -> SpeedtestResult:
         return await asyncio.to_thread(self._run_sync)
 
-    def _run_sync(self) -> SpeedtestResult:
+    @staticmethod
+    def _run_sync() -> SpeedtestResult:
         try:
             import speedtest  # type: ignore
         except Exception as exc:  # pragma: no cover - best-effort import
