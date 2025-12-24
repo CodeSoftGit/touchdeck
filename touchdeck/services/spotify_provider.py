@@ -303,7 +303,8 @@ class SpotifyProvider(MediaProvider):
             server.shutdown()
             thread.join(timeout=2)
 
-    def _translate_error(self, exc: SpotifyException) -> MediaError:
+    @staticmethod
+    def _translate_error(exc: SpotifyException) -> MediaError:
         msg = exc.msg or "Spotify error"
         if exc.http_status == 403 and "PREMIUM" in msg.upper():
             return MediaError("Spotify Premium is required for that control")

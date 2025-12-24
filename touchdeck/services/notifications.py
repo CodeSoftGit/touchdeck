@@ -44,7 +44,8 @@ class NotificationListener:
             self._started = False
             self._bus = None
 
-    async def _become_monitor(self, bus: MessageBus) -> None:
+    @staticmethod
+    async def _become_monitor(bus: MessageBus) -> None:
         reply = await bus.call(
             Message(
                 destination="org.freedesktop.DBus",

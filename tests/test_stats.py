@@ -18,7 +18,8 @@ class _FakePsutil:
     def cpu_percent(self, interval=None):
         return self._cpu_pct
 
-    def virtual_memory(self):
+    @staticmethod
+    def virtual_memory():
         return _FakeVMem()
 
 

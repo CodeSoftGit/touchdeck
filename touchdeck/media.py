@@ -44,13 +44,16 @@ class MediaProvider:
     async def set_volume(self, percent: int) -> None:
         raise NotImplementedError
 
-    async def list_devices(self) -> list[MediaDevice]:
+    @staticmethod
+    async def list_devices() -> list[MediaDevice]:
         return []
 
-    async def transfer_playback(self, device_id: str, *, play: bool = True) -> None:
+    @staticmethod
+    async def transfer_playback(device_id: str, *, play: bool = True) -> None:
         return None
 
-    async def ensure_ready(self) -> None:
+    @staticmethod
+    async def ensure_ready() -> None:
         """Optional hook for providers that require warm-up (e.g., auth refresh)."""
         return None
 
