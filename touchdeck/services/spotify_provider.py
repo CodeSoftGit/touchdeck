@@ -192,7 +192,9 @@ class SpotifyProvider(MediaProvider):
         is_playing = bool(playback.get("is_playing")) if playback else False
         try:
             if is_playing:
-                await asyncio.to_thread(client.pause_playback, device_id=self._device_id)
+                await asyncio.to_thread(
+                    client.pause_playback, device_id=self._device_id
+                )
             else:
                 await asyncio.to_thread(
                     client.start_playback, device_id=self._device_id
@@ -395,7 +397,11 @@ class SpotifyProvider(MediaProvider):
                     # http.client.HTTPResponse has .headers with email.message.Message methods
                     content_type = resp.headers.get_content_type()  # type: ignore[attr-defined]
                 except Exception:
-                    ct = resp.headers.get("Content-Type") if hasattr(resp, "headers") else None
+                    ct = (
+                        resp.headers.get("Content-Type")
+                        if hasattr(resp, "headers")
+                        else None
+                    )
                     if isinstance(ct, str) and ct:
                         content_type = ct.split(";", 1)[0].strip()
 
@@ -479,5 +485,7 @@ class SpotifyProvider(MediaProvider):
         if exc.http_status == 403 and "PREMIUM" in msg.upper():
             return MediaError("Spotify Premium is required for that control")
         if exc.http_status == 404 and "NO ACTIVE DEVICE" in msg.upper():
-            return MediaError("No active Spotify device. Pick one in Settings -> Media.")
+            return MediaError(
+                "No active Spotify device. Pick one in Settings -> Media."
+            )
         return MediaError(msg)

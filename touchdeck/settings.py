@@ -165,7 +165,12 @@ def _coerce_lyrics_cache(val: Any) -> dict[str, list[dict[str, Any]]]:
     cache: dict[str, list[dict[str, Any]]] = {}
     for key, lines in val.items():
         # ignore non-string keys, blank keys, and keys that are purely numeric
-        if not isinstance(key, str) or not isinstance(lines, list) or not key.strip() or key.isdigit():
+        if (
+            not isinstance(key, str)
+            or not isinstance(lines, list)
+            or not key.strip()
+            or key.isdigit()
+        ):
             continue
         entries: list[dict[str, Any]] = []
         for entry in lines:

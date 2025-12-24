@@ -339,7 +339,9 @@ class MusicPage(QWidget):
                 new_url = reply.url().resolved(redir)
                 new_url_str = new_url.toString()
                 if new_url_str and new_url_str != self._current_art_url:
-                    print(f"[MusicPage] redirect {self._current_art_url!r} -> {new_url_str!r}")
+                    print(
+                        f"[MusicPage] redirect {self._current_art_url!r} -> {new_url_str!r}"
+                    )
                     # Update current and re-request
                     self._current_art_url = new_url_str
                     reply.deleteLater()
@@ -358,7 +360,9 @@ class MusicPage(QWidget):
                 err_str = reply.errorString()
             except Exception:
                 err_str = "unknown error"
-            print(f"[MusicPage] art fetch failed url={self._current_art_url!r} status={status!r} err={err_str!r}")
+            print(
+                f"[MusicPage] art fetch failed url={self._current_art_url!r} status={status!r} err={err_str!r}"
+            )
             reply.deleteLater()
             return
 
