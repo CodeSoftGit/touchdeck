@@ -11,8 +11,7 @@ def clamp(v: float, lo: float, hi: float) -> float:
 
 
 def ms_to_mmss(ms: int) -> str:
-    if ms < 0:
-        ms = 0
+    ms = max(ms, 0)
     total_sec = ms // 1000
     m = total_sec // 60
     s = total_sec % 60
